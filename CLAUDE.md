@@ -23,6 +23,11 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
 - Catalogue d'ingrédients : `IngredientCategory` est un enum Prisma fixe (pas une table séparée
   avec son propre CRUD) — simplification volontaire par rapport au plan initial, suffisant pour
   grouper la liste de courses en Phase 5 sans complexité inutile.
+- Planning (`PlannedMeal`) : dates stockées en minuit UTC (jour seul, l'heure n'est pas utilisée) —
+  voir `features/meal-plan/dates.ts` (testé) pour tout calcul de semaine/jour, ne pas manipuler les
+  dates à la main ailleurs. `useOptimistic` n'est utilisé que pour le retrait d'un repas (clic
+  unique, gain UX net) ; l'assignation garde `useActionState` classique (formulaire multi-champs,
+  le `pending` suffit).
 
 ## shadcn/ui sur Base UI (pas Radix)
 

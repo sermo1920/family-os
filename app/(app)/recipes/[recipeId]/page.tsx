@@ -7,12 +7,7 @@ import {
 } from "@/features/recipes/calculations";
 import { NutritionSummary } from "@/features/recipes/components/nutrition-summary";
 import { DeleteRecipeButton } from "@/features/recipes/components/delete-recipe-button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const shortUnitLabels = { GRAM: "g", MILLILITER: "ml" } as const;
 

@@ -7,6 +7,7 @@ const navLinks = [
   { href: "/household", label: "Foyer" },
   { href: "/ingredients", label: "Ingrédients" },
   { href: "/recipes", label: "Recettes" },
+  { href: "/planner", label: "Planning" },
 ];
 
 export default async function AppLayout({

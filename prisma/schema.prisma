@@ -16,9 +16,10 @@ model Household {
   name      String
   createdAt DateTime @default(now())
 
-  members     Member[]
-  ingredients Ingredient[]
-  recipes     Recipe[]
+  members      Member[]
+  ingredients  Ingredient[]
+  recipes      Recipe[]
+  plannedMeals PlannedMeal[]
 }
 
 // Une personne du foyer. Pas tous les membres ne peuvent se connecter
@@ -42,7 +43,8 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  nutritionGoals NutritionGoal[]
+  nutritionGoals  NutritionGoal[]
+  mealAttendances MealAttendance[]
 }
 
 // Historique versionné : la ligne la plus récente (createdAt) pour un membre
@@ -101,7 +103,8 @@ model Recipe {
 
   createdAt DateTime @default(now())
 
-  ingredients RecipeIngredient[]
+  ingredients  RecipeIngredient[]
+  plannedMeals PlannedMeal[]
 }
 
 // Relation many-to-many avec quantité (exprimée dans l'unité de l'ingrédient).
@@ -115,6 +118,45 @@ model RecipeIngredient {
   quantity Float
 
   @@unique([recipeId, ingredientId])
+}
+
+// Un repas planifié pour un jour + créneau donné. Un seul par (foyer, jour,
+// créneau) : réassigner une recette sur le même créneau remplace l'existant.
+model PlannedMeal {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  date     DateTime // jour seul (minuit UTC) ; l'heure n'est pas utilisée
+  mealSlot MealSlot
+
+  recipeId          String
+  recipe            Recipe @relation(fields: [recipeId], references: [id])
+  portionMultiplier Float  @default(1)
+
+  createdAt DateTime @default(now())
+
+  attendances MealAttendance[]
+
+  @@unique([householdId, date, mealSlot])
+}
+
+// Quels membres du foyer mangent ce repas planifié.
+model MealAttendance {
+  id            String      @id @default(cuid())
+  plannedMealId String
+  plannedMeal   PlannedMeal @relation(fields: [plannedMealId], references: [id], onDelete: Cascade)
+  memberId      String
+  member        Member      @relation(fields: [memberId], references: [id])
+
+  @@unique([plannedMealId, memberId])
+}
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
 }
 
 enum Unit {
