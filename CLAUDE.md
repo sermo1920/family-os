@@ -28,6 +28,27 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
   dates à la main ailleurs. `useOptimistic` n'est utilisé que pour le retrait d'un repas (clic
   unique, gain UX net) ; l'assignation garde `useActionState` classique (formulaire multi-champs,
   le `pending` suffit).
+- Liste de courses (`ShoppingList`/`ShoppingListItem`) : pas de champ `status` (DRAFT/ACTIVE/
+  ARCHIVED) contrairement au plan initial — simplification volontaire, une liste existe ou est
+  supprimée. `ShoppingListItem.name` est toujours copié à la création (agrégation ou saisie
+  manuelle) plutôt que de dépendre d'une relation vers `Ingredient` : l'affichage ne casse jamais
+  si l'ingrédient source est renommé/supprimé ensuite (`onDelete: SetNull` sur la relation).
+  L'agrégation (`features/shopping-list/aggregate.ts`) est une fonction pure testée : deux recettes
+  partageant un ingrédient doivent donner une seule ligne sommée.
+
+## Playwright (e2e)
+
+- Premiers tests dans `e2e/auth.spec.ts` : redirection non-authentifié, validation du formulaire
+  d'inscription, erreur de connexion invalide. Volontairement scopés à ce qui ne nécessite PAS de
+  compte Supabase préconfirmé (la confirmation email est activée, cf. section Auth) : créer un vrai
+  compte de test demanderait la clé secrète Supabase (admin), qu'on ne veut pas manipuler dans une
+  suite de tests locale pour l'instant.
+- Un test couvrant le vrai flux complet (inscription → planning → génération de liste → coche d'un
+  article) est un bon candidat futur, une fois un utilisateur de test dédié provisionné via cette
+  clé secrète.
+- `npm run test:e2e` en local (lance son propre serveur `next dev` via `webServer` dans
+  `playwright.config.ts`). Pas encore branché dans la CI GitHub Actions (demanderait les secrets
+  Supabase/DB là-bas) — `npm run test` (Vitest) reste le seul test qui tourne en CI pour l'instant.
 
 ## shadcn/ui sur Base UI (pas Radix)
 

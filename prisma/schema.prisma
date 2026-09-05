@@ -16,10 +16,11 @@ model Household {
   name      String
   createdAt DateTime @default(now())
 
-  members      Member[]
-  ingredients  Ingredient[]
-  recipes      Recipe[]
-  plannedMeals PlannedMeal[]
+  members       Member[]
+  ingredients   Ingredient[]
+  recipes       Recipe[]
+  plannedMeals  PlannedMeal[]
+  shoppingLists ShoppingList[]
 }
 
 // Une personne du foyer. Pas tous les membres ne peuvent se connecter
@@ -90,6 +91,7 @@ model Ingredient {
   createdAt DateTime @default(now())
 
   recipeIngredients RecipeIngredient[]
+  shoppingListItems ShoppingListItem[]
 }
 
 model Recipe {
@@ -150,6 +152,42 @@ model MealAttendance {
   member        Member      @relation(fields: [memberId], references: [id])
 
   @@unique([plannedMealId, memberId])
+}
+
+// Générée à partir d'une plage de dates du planning (voir
+// features/shopping-list/aggregate.ts pour le calcul).
+model ShoppingList {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  name      String
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+
+  items ShoppingListItem[]
+}
+
+model ShoppingListItem {
+  id             String       @id @default(cuid())
+  shoppingListId String
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  // Lien optionnel vers l'ingrédient source (null pour un article ajouté
+  // manuellement). name/category sont toujours copiés à la création, donc
+  // l'affichage ne dépend jamais de ce lien et reste stable même si
+  // l'ingrédient source est ensuite renommé ou supprimé.
+  ingredientId String?
+  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  name         String
+
+  category IngredientCategory
+  quantity Float
+  unit     Unit
+
+  isChecked Boolean @default(false)
 }
 
 enum MealSlot {
