@@ -26,6 +26,14 @@ const activityLevels = [
   { value: "VERY_ACTIVE", label: "Très actif (sport intense quotidien)" },
 ];
 
+// Base UI n'affiche le libellé choisi dans le déclencheur (au lieu de la
+// valeur brute "MALE"/"ADULT") que si on lui passe cette table value->libellé.
+const roleItems = { ADULT: "Adulte", CHILD: "Enfant" };
+const sexItems = { FEMALE: "Femme", MALE: "Homme" };
+const activityLevelItems = Object.fromEntries(
+  activityLevels.map((level) => [level.value, level.label]),
+);
+
 export function AddMemberForm({ householdId }: { householdId: string }) {
   const action = addMember.bind(null, householdId);
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -39,7 +47,7 @@ export function AddMemberForm({ householdId }: { householdId: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="role">Type de profil</Label>
-        <Select name="role" defaultValue="ADULT">
+        <Select name="role" defaultValue="ADULT" items={roleItems}>
           <SelectTrigger id="role">
             <SelectValue />
           </SelectTrigger>
@@ -57,7 +65,7 @@ export function AddMemberForm({ householdId }: { householdId: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="sex">Sexe</Label>
-        <Select name="sex">
+        <Select name="sex" items={sexItems}>
           <SelectTrigger id="sex">
             <SelectValue placeholder="Non précisé" />
           </SelectTrigger>
@@ -80,7 +88,7 @@ export function AddMemberForm({ householdId }: { householdId: string }) {
 
       <div className="flex flex-col gap-2 sm:col-span-2">
         <Label htmlFor="activityLevel">Niveau d&apos;activité</Label>
-        <Select name="activityLevel">
+        <Select name="activityLevel" items={activityLevelItems}>
           <SelectTrigger id="activityLevel">
             <SelectValue placeholder="Non précisé" />
           </SelectTrigger>

@@ -27,6 +27,13 @@ const activityLevels: { value: ActivityLevel; label: string }[] = [
   { value: "VERY_ACTIVE", label: "Très actif (sport intense quotidien)" },
 ];
 
+// Base UI n'affiche le libellé choisi dans le déclencheur (au lieu de la
+// valeur brute "MALE"/"MODERATE") que si on lui passe cette table value->libellé.
+const sexItems = { FEMALE: "Femme", MALE: "Homme" };
+const activityLevelItems = Object.fromEntries(
+  activityLevels.map((level) => [level.value, level.label]),
+);
+
 export function ProfileForm({
   memberId,
   displayName,
@@ -75,7 +82,7 @@ export function ProfileForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="sex">Sexe</Label>
-        <Select name="sex" defaultValue={sex ?? undefined}>
+        <Select name="sex" defaultValue={sex ?? undefined} items={sexItems}>
           <SelectTrigger id="sex">
             <SelectValue placeholder="Non précisé" />
           </SelectTrigger>
@@ -112,7 +119,11 @@ export function ProfileForm({
 
       <div className="flex flex-col gap-2 sm:col-span-2">
         <Label htmlFor="activityLevel">Niveau d&apos;activité</Label>
-        <Select name="activityLevel" defaultValue={activityLevel ?? undefined}>
+        <Select
+          name="activityLevel"
+          defaultValue={activityLevel ?? undefined}
+          items={activityLevelItems}
+        >
           <SelectTrigger id="activityLevel">
             <SelectValue placeholder="Non précisé" />
           </SelectTrigger>
