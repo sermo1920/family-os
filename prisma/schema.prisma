@@ -1,0 +1,61 @@
+// Nommage générique (Household/Member) pour que de futurs modules Family OS
+// (calendrier, tâches, budget...) puissent réutiliser ces mêmes entités.
+// Voir le plan de conception pour le schéma complet prévu (Phases 2 à 5).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members Member[]
+}
+
+// Une personne du foyer. Pas tous les membres ne peuvent se connecter
+// (ex: un enfant) : linkedUserId est optionnel et pointe vers l'utilisateur
+// Supabase Auth correspondant quand il existe.
+model Member {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  linkedUserId String? @unique
+  displayName  String
+  role         MemberRole @default(ADULT)
+
+  dateOfBirth   DateTime?
+  sex           Sex?
+  heightCm      Float?
+  weightKg      Float?
+  activityLevel ActivityLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MemberRole {
+  OWNER
+  ADULT
+  CHILD
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
