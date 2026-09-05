@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   addMember,
   type AddMemberActionState,
@@ -34,12 +34,31 @@ const activityLevelItems = Object.fromEntries(
   activityLevels.map((level) => [level.value, level.label]),
 );
 
-export function AddMemberForm({ householdId }: { householdId: string }) {
+export function AddMemberForm({
+  householdId,
+  onSuccess,
+}: {
+  householdId: string;
+  onSuccess?: () => void;
+}) {
   const action = addMember.bind(null, householdId);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    if (submittedRef.current && !pending) {
+      submittedRef.current = false;
+      if (!state.error) onSuccess?.();
+    }
+  }, [pending, state, onSuccess]);
+
+  function handleAction(formData: FormData) {
+    submittedRef.current = true;
+    formAction(formData);
+  }
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+    <form action={handleAction} className="grid gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-2">
         <Label htmlFor="displayName">Prénom</Label>
         <Input id="displayName" name="displayName" required />
