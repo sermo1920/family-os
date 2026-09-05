@@ -96,3 +96,28 @@ export async function updateMemberProfile(
   revalidatePath(`/nutrition-goals/${memberId}`);
   return { error: null };
 }
+
+export type DeleteMemberState = { error: string | null };
+
+export async function deleteMember(
+  memberId: string,
+): Promise<DeleteMemberState> {
+  const member = await prisma.member.findUniqueOrThrow({
+    where: { id: memberId },
+  });
+  await assertHouseholdAccess(member.householdId);
+
+  // Un membre avec son propre compte (le propriétaire, ou un futur adulte
+  // invité) n'est pas juste une fiche du foyer : le supprimer ici laisserait
+  // le compte Supabase Auth exister sans membre associé. Pas géré en V1.
+  if (member.linkedUserId) {
+    return {
+      error:
+        "Impossible de supprimer un membre ayant son propre compte de connexion.",
+    };
+  }
+
+  await prisma.member.delete({ where: { id: memberId } });
+  revalidatePath("/household");
+  return { error: null };
+}

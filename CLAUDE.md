@@ -112,6 +112,17 @@ prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest
 - Confirmation email activée par défaut sur les projets Supabase hébergés (comportement gardé
   tel quel, pas désactivé pour "simplifier" le dev) : après `signUp()`, l'utilisateur n'a pas de
   session tant qu'il n'a pas cliqué le lien reçu par mail.
+- Piège vécu : à la création du premier Member (OWNER), lire `user_metadata.display_name` depuis
+  les claims de `getClaims()` s'est révélé peu fiable (retombait sur l'e-mail comme nom affiché).
+  `getOrCreateCurrentMember()` utilise donc `supabase.auth.getUser()` (un vrai appel réseau,
+  acceptable ici car ce n'est exécuté qu'une seule fois par compte) pour lire `user_metadata` de
+  façon fiable à ce moment précis. `Member.email` est un champ séparé, copié une fois depuis
+  Supabase Auth, jamais utilisé comme `displayName` ni modifiable dans l'app (le vrai compte reste
+  géré par Supabase).
+- Suppression d'un membre (`deleteMember`) : refusée si `linkedUserId` est renseigné (un membre
+  avec son propre compte de connexion n'est pas une simple fiche de foyer) — géré uniquement pour
+  les membres sans compte (enfants, etc.). `NutritionGoal`/`MealAttendance` ont `onDelete: Cascade`
+  côté `Member` pour que la suppression ne bute pas sur une contrainte de clé étrangère.
 
 ## Piège vécu : erreur Prisma "Can't reach database server at base"
 

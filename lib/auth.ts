@@ -25,11 +25,19 @@ export async function getOrCreateCurrentMember(): Promise<Member> {
   });
   if (existing) return existing;
 
-  const displayName =
-    ((claims.user_metadata as Record<string, unknown> | undefined)
-      ?.display_name as string | undefined) ??
-    claims.email ??
-    "Moi";
+  // Première visite authentifiée seulement : on peut se permettre l'appel
+  // réseau de getUser() ici (pas un chemin chaud) pour lire user_metadata de
+  // façon fiable. Les claims décodés localement via getClaims() ne l'ont pas
+  // toujours embarqué correctement, ce qui faisait retomber le nom affiché
+  // sur l'e-mail — d'où aussi le champ `email` séparé ci-dessous, jamais
+  // utilisé comme nom.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const rawDisplayName = (
+    userData.user?.user_metadata as Record<string, unknown> | undefined
+  )?.display_name as string | undefined;
+  const email = userData.user?.email ?? claims.email ?? null;
+  const displayName = rawDisplayName?.trim() || email?.split("@")[0] || "Moi";
 
   const household = await prisma.household.create({
     data: {
@@ -38,6 +46,7 @@ export async function getOrCreateCurrentMember(): Promise<Member> {
         create: {
           linkedUserId: claims.sub,
           displayName,
+          email,
           role: "OWNER",
         },
       },

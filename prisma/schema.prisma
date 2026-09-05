@@ -32,6 +32,10 @@ model Member {
   household   Household @relation(fields: [householdId], references: [id])
 
   linkedUserId String? @unique
+  // Copié depuis Supabase Auth à la création (jamais modifiable dans l'app :
+  // le vrai compte reste géré par Supabase). Distinct de displayName, qui est
+  // le nom affiché et librement modifiable.
+  email        String?
   displayName  String
   role         MemberRole @default(ADULT)
 
@@ -54,7 +58,7 @@ model Member {
 model NutritionGoal {
   id       String @id @default(cuid())
   memberId String
-  member   Member @relation(fields: [memberId], references: [id])
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   // Valeurs calculées à partir du profil au moment du calcul (pour audit/
   // historique, même si l'utilisateur modifie ensuite manuellement la cible).
@@ -149,7 +153,7 @@ model MealAttendance {
   plannedMealId String
   plannedMeal   PlannedMeal @relation(fields: [plannedMealId], references: [id], onDelete: Cascade)
   memberId      String
-  member        Member      @relation(fields: [memberId], references: [id])
+  member        Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([plannedMealId, memberId])
 }
