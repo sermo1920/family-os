@@ -157,9 +157,8 @@ export function MemberRow({
                 <DialogTitle>Inviter {member.displayName}</DialogTitle>
                 <DialogDescription>
                   Partage ce lien (e-mail, SMS, WhatsApp...) : en
-                  l&apos;ouvrant,
-                  {member.displayName} pourra créer son propre compte et
-                  rejoindre ce foyer. Valable 7 jours.
+                  l&apos;ouvrant, {member.displayName} pourra créer son propre
+                  compte et rejoindre ce foyer. Valable 7 jours.
                 </DialogDescription>
               </DialogHeader>
 

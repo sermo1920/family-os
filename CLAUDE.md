@@ -130,13 +130,13 @@ prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest
   publique (autorisée dans `lib/supabase/proxy.ts` aux côtés de `/sign-in`/`/sign-up`) où
   l'invité·e choisit son propre e-mail/mot de passe. La confirmation d'e-mail (déjà en place, cf.
   section Auth ci-dessus) reste gérée par Supabase — on ne réinvente pas cette étape.
-  - Le rattachement au *même* foyer (au lieu de la création automatique d'un nouveau foyer par
+  - Le rattachement au _même_ foyer (au lieu de la création automatique d'un nouveau foyer par
     `getOrCreateCurrentMember()`) passe par `user_metadata.invite_token`, posé sur le compte
     Supabase au moment du `signUp()` (`options.data.invite_token`). C'est le seul pont possible
     entre la page d'invitation (pas encore de session) et la première connexion réelle après clic
     sur le lien de confirmation e-mail (nouvelle requête, nouveau contexte serveur) :
     `getOrCreateCurrentMember()` lit ce token, vérifie l'invitation (non expirée, non déjà
-    acceptée) et *rattache* (`Member.linkedUserId`) le Member existant au lieu d'en créer un.
+    acceptée) et _rattache_ (`Member.linkedUserId`) le Member existant au lieu d'en créer un.
   - Une invitation est **1:1 avec un Member** (`memberId` unique sur `HouseholdInvitation`) :
     on invite une fiche de foyer déjà créée (ex: "Julie" ajoutée sans compte), pas une adresse
     e-mail abstraite. Regénérer un lien pour le même Member met à jour le token/l'expiration en
