@@ -70,3 +70,20 @@ prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest
 - Confirmation email activée par défaut sur les projets Supabase hébergés (comportement gardé
   tel quel, pas désactivé pour "simplifier" le dev) : après `signUp()`, l'utilisateur n'a pas de
   session tant qu'il n'a pas cliqué le lien reçu par mail.
+
+## Piège vécu : erreur Prisma "Can't reach database server at base"
+
+Rencontré en déployant sur Vercel (fonctionnait en local avec les mêmes identifiants). Le message
+`P1001 Can't reach database server at base` **n'indique PAS un vrai hostname "base"** — c'est un
+texte générique/bugué de cette version de Prisma (`7.10.0` + `@prisma/adapter-pg`), pas dérivé de
+`DATABASE_URL`. Deux pièges bien réels rencontrés en le débuggant, dans l'ordre :
+
+1. Guillemets collés par erreur dans la valeur de la variable d'environnement Vercel (copiées
+   depuis `.env.local`, où la valeur est entre guillemets pour la syntaxe du fichier) — cassait le
+   parsing de l'URL (`new URL()` levait "Invalid URL"). Se vérifie en loggant `raw.length` et en
+   comparant à la longueur attendue.
+2. Une fois l'URL valide, une vraie erreur de connectivité réseau Vercel→Supabase transitoire a
+   persisté un moment puis s'est résolue d'elle-même (nouveau déploiement / pooler Supabase qui
+   récupère). Si ça revient : logguer `error.meta.driverAdapterError.cause` (pas exposé par défaut
+   par Prisma) pour voir la vraie cause Node (ECONNREFUSED/ETIMEDOUT/etc.), ne pas se fier au
+   message affiché.
