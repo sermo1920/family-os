@@ -20,9 +20,25 @@ export async function getOrCreateCurrentMember(): Promise<Member> {
   const claims = await getAuthClaims();
   if (!claims) redirect("/sign-in");
 
-  const existing = await prisma.member.findUnique({
-    where: { linkedUserId: claims.sub },
-  });
+  let existing;
+  try {
+    existing = await prisma.member.findUnique({
+      where: { linkedUserId: claims.sub },
+    });
+  } catch (err) {
+    // Diagnostic temporaire : la cause réelle d'une erreur de connexion
+    // réseau (ETIMEDOUT, ECONNREFUSED, certificat...) n'est pas incluse dans
+    // le message par défaut de Prisma. À retirer une fois résolu.
+    const driverCause = (
+      err as {
+        meta?: { driverAdapterError?: { cause?: unknown } };
+      }
+    )?.meta?.driverAdapterError?.cause;
+    console.log(
+      `[lib/auth] findUnique failed, driverAdapterError.cause=${JSON.stringify(driverCause, Object.getOwnPropertyNames((driverCause as object) ?? {}))}`,
+    );
+    throw err;
+  }
   if (existing) return existing;
 
   const displayName =
