@@ -30,15 +30,18 @@ export function MemberRow({
   };
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePending, startDeleteTransition] = useTransition();
 
   function handleDelete() {
-    if (!window.confirm(`Supprimer ${member.displayName} du foyer ?`)) return;
     setDeleteError(null);
     startDeleteTransition(async () => {
       const result = await deleteMember(member.id);
-      if (result.error) setDeleteError(result.error);
+      if (result.error) {
+        setDeleteError(result.error);
+        setConfirmingDelete(false);
+      }
     });
   }
 
@@ -95,16 +98,35 @@ export function MemberRow({
           >
             Objectifs nutritionnels
           </Link>
-          {!member.linkedUserId && (
-            <button
-              type="button"
-              disabled={deletePending}
-              className="text-destructive text-sm underline"
-              onClick={handleDelete}
-            >
-              Supprimer
-            </button>
-          )}
+          {!member.linkedUserId &&
+            (confirmingDelete ? (
+              <span className="flex items-center gap-2">
+                <span className="text-destructive text-sm">Confirmer ?</span>
+                <button
+                  type="button"
+                  disabled={deletePending}
+                  className="text-destructive text-sm underline"
+                  onClick={handleDelete}
+                >
+                  {deletePending ? "..." : "Oui"}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm underline"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Annuler
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="text-destructive text-sm underline"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Supprimer
+              </button>
+            ))}
         </div>
       </div>
       {deleteError && <p className="text-destructive text-sm">{deleteError}</p>}
