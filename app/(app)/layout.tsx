@@ -19,10 +19,10 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-6">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b px-6 py-4">
+        <div className="flex flex-wrap items-center gap-6">
           <span className="font-semibold">Family OS</span>
-          <nav className="flex items-center gap-4">
+          <nav className="flex flex-wrap items-center gap-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
