@@ -10,20 +10,15 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  // Diagnostic temporaire : n'affiche jamais le mot de passe, seulement ce
-  // que Node parvient à extraire comme hôte/port depuis DATABASE_URL, pour
-  // débugger une erreur de connexion en prod sans exposer de secret dans les
-  // logs. À retirer une fois le problème de connexion résolu.
-  try {
-    const url = new URL(process.env.DATABASE_URL ?? "");
-    console.log(
-      `[lib/db] DATABASE_URL parsed host="${url.hostname}" port="${url.port}" protocol="${url.protocol}" hasPassword=${Boolean(url.password)}`,
-    );
-  } catch (err) {
-    console.log(
-      `[lib/db] DATABASE_URL failed to parse as a URL: ${(err as Error).message}. isSet=${Boolean(process.env.DATABASE_URL)} length=${process.env.DATABASE_URL?.length ?? 0}`,
-    );
-  }
+  // Diagnostic temporaire : affiche la chaîne de connexion avec le mot de
+  // passe masqué (jamais loggé en clair), pour voir précisément où est le
+  // problème (guillemets/espaces parasites, host tronqué...). À retirer une
+  // fois le problème de connexion résolu.
+  const raw = process.env.DATABASE_URL ?? "";
+  const masked = raw.replace(/:\/\/([^:]*):([^@]*)@/, "://$1:***@");
+  console.log(
+    `[lib/db] DATABASE_URL len=${raw.length} first3=${JSON.stringify(raw.slice(0, 3))} last3=${JSON.stringify(raw.slice(-3))} masked=${JSON.stringify(masked)}`,
+  );
 
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
   return new PrismaClient({ adapter });
