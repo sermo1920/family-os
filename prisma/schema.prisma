@@ -21,6 +21,7 @@ model Household {
   recipes       Recipe[]
   plannedMeals  PlannedMeal[]
   shoppingLists ShoppingList[]
+  invitations   HouseholdInvitation[]
 }
 
 // Une personne du foyer. Pas tous les membres ne peuvent se connecter
@@ -50,6 +51,27 @@ model Member {
 
   nutritionGoals  NutritionGoal[]
   mealAttendances MealAttendance[]
+  invitation      HouseholdInvitation?
+}
+
+// Invitation à rejoindre le foyer en tant que `member` (déjà créé sans
+// compte, ex: via "Ajouter un membre"). Le lien contenant `token` est généré
+// dans l'app puis partagé manuellement par le propriétaire (e-mail, SMS,
+// WhatsApp...) — pas d'envoi automatique, donc pas besoin d'un service
+// d'e-mail tiers. `acceptedAt` empêche de réutiliser un lien déjà consommé.
+model HouseholdInvitation {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  memberId    String    @unique
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  email String? // indicatif seulement, non vérifié à l'acceptation
+  token String  @unique
+
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 // Historique versionné : la ligne la plus récente (createdAt) pour un membre

@@ -123,6 +123,27 @@ prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest
   avec son propre compte de connexion n'est pas une simple fiche de foyer) — géré uniquement pour
   les membres sans compte (enfants, etc.). `NutritionGoal`/`MealAttendance` ont `onDelete: Cascade`
   côté `Member` pour que la suppression ne bute pas sur une contrainte de clé étrangère.
+- Invitation d'un membre à rejoindre le foyer (`features/household/invitation-*`) : volontairement
+  **pas de service d'envoi d'e-mail dédié** (Resend/Postmark/etc.) — le propriétaire du foyer génère
+  un lien (`HouseholdInvitation.token`, cuid `crypto.randomUUID()`, expire après 7 jours) et le
+  partage lui-même (e-mail, SMS, WhatsApp...). Le lien pointe vers `/invite/[token]`, une page
+  publique (autorisée dans `lib/supabase/proxy.ts` aux côtés de `/sign-in`/`/sign-up`) où
+  l'invité·e choisit son propre e-mail/mot de passe. La confirmation d'e-mail (déjà en place, cf.
+  section Auth ci-dessus) reste gérée par Supabase — on ne réinvente pas cette étape.
+  - Le rattachement au *même* foyer (au lieu de la création automatique d'un nouveau foyer par
+    `getOrCreateCurrentMember()`) passe par `user_metadata.invite_token`, posé sur le compte
+    Supabase au moment du `signUp()` (`options.data.invite_token`). C'est le seul pont possible
+    entre la page d'invitation (pas encore de session) et la première connexion réelle après clic
+    sur le lien de confirmation e-mail (nouvelle requête, nouveau contexte serveur) :
+    `getOrCreateCurrentMember()` lit ce token, vérifie l'invitation (non expirée, non déjà
+    acceptée) et *rattache* (`Member.linkedUserId`) le Member existant au lieu d'en créer un.
+  - Une invitation est **1:1 avec un Member** (`memberId` unique sur `HouseholdInvitation`) :
+    on invite une fiche de foyer déjà créée (ex: "Julie" ajoutée sans compte), pas une adresse
+    e-mail abstraite. Regénérer un lien pour le même Member met à jour le token/l'expiration en
+    place plutôt que d'empiler des invitations.
+  - Le lien est construit à la volée depuis `headers()` (host de la requête), pas depuis une
+    variable d'environnement d'URL publique — évite d'avoir à synchroniser une env var à chaque
+    changement de domaine Vercel (preview vs prod).
 
 ## Piège vécu : erreur Prisma "Can't reach database server at base"
 

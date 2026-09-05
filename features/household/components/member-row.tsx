@@ -5,7 +5,9 @@ import Link from "next/link";
 import { XIcon } from "lucide-react";
 import { ProfileForm } from "@/features/household/components/profile-form";
 import { deleteMember } from "@/features/household/actions";
+import { createInvitation } from "@/features/household/invitation-actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogClose,
@@ -26,6 +28,8 @@ const roleLabels: Record<string, string> = {
 
 export function MemberRow({
   member,
+  canInvite,
+  existingInviteLink,
 }: {
   member: {
     id: string;
@@ -39,11 +43,20 @@ export function MemberRow({
     weightKg: number | null;
     activityLevel: ActivityLevel | null;
   };
+  canInvite: boolean;
+  existingInviteLink: string | null;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePending, startDeleteTransition] = useTransition();
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState(existingInviteLink);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [invitePending, startInviteTransition] = useTransition();
+  const [copied, setCopied] = useState(false);
 
   function handleDelete() {
     setDeleteError(null);
@@ -55,6 +68,25 @@ export function MemberRow({
         setDeleteOpen(false);
       }
     });
+  }
+
+  function handleGenerateInvite() {
+    setInviteError(null);
+    startInviteTransition(async () => {
+      const result = await createInvitation(member.id);
+      if (result.ok) {
+        setInviteLink(result.link);
+        setCopied(false);
+      } else {
+        setInviteError(result.error);
+      }
+    });
+  }
+
+  async function handleCopy() {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
   }
 
   if (isEditing) {
@@ -107,6 +139,74 @@ export function MemberRow({
         >
           Objectifs nutritionnels
         </Link>
+        {canInvite && !member.linkedUserId && (
+          <Dialog
+            open={inviteOpen}
+            onOpenChange={(open) => {
+              setInviteOpen(open);
+              if (!open) setInviteError(null);
+            }}
+          >
+            <DialogTrigger
+              render={<button type="button" className="text-sm underline" />}
+            >
+              {inviteLink ? "Invitation" : "Inviter"}
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Inviter {member.displayName}</DialogTitle>
+                <DialogDescription>
+                  Partage ce lien (e-mail, SMS, WhatsApp...) : en
+                  l&apos;ouvrant,
+                  {member.displayName} pourra créer son propre compte et
+                  rejoindre ce foyer. Valable 7 jours.
+                </DialogDescription>
+              </DialogHeader>
+
+              {inviteLink ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Input readOnly value={inviteLink} className="text-xs" />
+                    <Button type="button" onClick={handleCopy}>
+                      {copied ? "Copié !" : "Copier"}
+                    </Button>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={invitePending}
+                    onClick={handleGenerateInvite}
+                  >
+                    {invitePending ? "..." : "Générer un nouveau lien"}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={invitePending}
+                  onClick={handleGenerateInvite}
+                >
+                  {invitePending
+                    ? "Génération..."
+                    : "Générer le lien d'invitation"}
+                </Button>
+              )}
+
+              {inviteError && (
+                <p className="text-destructive text-sm">{inviteError}</p>
+              )}
+
+              <DialogFooter>
+                <DialogClose
+                  render={<Button type="button" variant="outline" />}
+                >
+                  Fermer
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
         {!member.linkedUserId && (
           <Dialog
             open={deleteOpen}
