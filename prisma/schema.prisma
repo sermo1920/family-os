@@ -16,7 +16,9 @@ model Household {
   name      String
   createdAt DateTime @default(now())
 
-  members Member[]
+  members     Member[]
+  ingredients Ingredient[]
+  recipes     Recipe[]
 }
 
 // Une personne du foyer. Pas tous les membres ne peuvent se connecter
@@ -65,6 +67,70 @@ model NutritionGoal {
   notes            String?
 
   createdAt DateTime @default(now())
+}
+
+// Catalogue par foyer (pas de base d'ingrédients globale à administrer).
+model Ingredient {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  name     String
+  category IngredientCategory
+  baseUnit Unit
+
+  // Valeurs nutritionnelles pour 100 g ou 100 ml (selon baseUnit).
+  caloriesPer100 Float
+  proteinPer100  Float
+  carbsPer100    Float
+  fatPer100      Float
+
+  createdAt DateTime @default(now())
+
+  recipeIngredients RecipeIngredient[]
+}
+
+model Recipe {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+
+  name         String
+  instructions String?
+  servings     Int      @default(1)
+
+  createdAt DateTime @default(now())
+
+  ingredients RecipeIngredient[]
+}
+
+// Relation many-to-many avec quantité (exprimée dans l'unité de l'ingrédient).
+model RecipeIngredient {
+  id           String     @id @default(cuid())
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+
+  quantity Float
+
+  @@unique([recipeId, ingredientId])
+}
+
+enum Unit {
+  GRAM
+  MILLILITER
+}
+
+enum IngredientCategory {
+  FRUITS_VEGETABLES
+  DAIRY
+  MEAT_FISH
+  GROCERY
+  BAKERY
+  BEVERAGES
+  FROZEN
+  OTHER
 }
 
 enum MemberRole {

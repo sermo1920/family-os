@@ -17,7 +17,23 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
 - Organisation par domaine métier dans `features/<domaine>/` (schema.ts, queries.ts, actions.ts,
   components/, logique pure isolée avec son .test.ts), pas par couche technique.
 - Tests : Vitest (fonctions pures), React Testing Library (composants), Playwright (e2e) —
-  introduits progressivement, voir la feuille de route par phases.
+  introduits progressivement, voir la feuille de route par phases. Tests composants : ajouter
+  `// @vitest-environment jsdom` en tête de fichier (garde les tests de fonctions pures rapides,
+  en environnement `node` par défaut, cf. `vitest.config.mts`).
+- Catalogue d'ingrédients : `IngredientCategory` est un enum Prisma fixe (pas une table séparée
+  avec son propre CRUD) — simplification volontaire par rapport au plan initial, suffisant pour
+  grouper la liste de courses en Phase 5 sans complexité inutile.
+
+## shadcn/ui sur Base UI (pas Radix)
+
+- `<Select>` : pour que le déclencheur affiche le libellé choisi (pas la valeur brute genre
+  "MALE"), il faut passer une prop `items` (`Record<value, label>`) au composant `Select` racine —
+  voir `features/*/schema.ts` (`categoryLabels`, `unitLabels`, etc.) et leur usage dans les forms.
+  Un `<Select>` accepte aussi plusieurs instances avec le même `name` dans un même formulaire
+  (chacune pose son propre input caché) : utilisé dans le constructeur d'ingrédients de
+  `RecipeForm`, lu côté serveur via `formData.getAll(name)`.
+- `<Button>` n'a pas de prop `asChild` (convention Radix) : utiliser `render={<Link .../>}` pour
+  qu'il rende un lien tout en gardant le style bouton.
 
 ## Prisma
 

@@ -1,6 +1,13 @@
+import Link from "next/link";
 import { getOrCreateCurrentMember } from "@/lib/auth";
 import { signOut } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
+
+const navLinks = [
+  { href: "/household", label: "Foyer" },
+  { href: "/ingredients", label: "Ingrédients" },
+  { href: "/recipes", label: "Recettes" },
+];
 
 export default async function AppLayout({
   children,
@@ -12,7 +19,20 @@ export default async function AppLayout({
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b px-6 py-4">
-        <span className="font-semibold">Family OS</span>
+        <div className="flex items-center gap-6">
+          <span className="font-semibold">Family OS</span>
+          <nav className="flex items-center gap-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-muted-foreground text-sm">
             {member.displayName}
