@@ -22,7 +22,7 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
 ## Prisma
 
 - Version épinglée en dur sur `7.10.0` (client + CLI + adapter-pg). Ne PAS faire `npm i
-  prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest` sur npm pointe
+prisma@latest` sans vérifier d'abord : au moment d'écrire ceci, le tag `latest` sur npm pointe
   vers une release candidate `8.0.0-rc.x` qui embarque "Prisma Composer" (voir point suivant).
 - On n'utilise PAS `@prisma/composer` / Prisma Cloud (plateforme de déploiement concurrente de
   Vercel, avec ses propres notions de services/modules/RPC). On reste sur le Prisma "classique" :
@@ -48,3 +48,25 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
   Prisma (`deepmerge-ts`, `mysql2` via `@prisma/config`) : uniquement utilisées par l'outillage
   CLI local (jamais déployé), donc sans risque réel. Ne pas lancer `npm audit fix --force` pour
   ça (ça downgrade vers un `prisma` plus vieux).
+
+## Auth (Supabase)
+
+- Next.js 16 a renommé Middleware en **Proxy** : le fichier s'appelle `proxy.ts` à la racine
+  (pas `middleware.ts`), exporte une fonction `proxy` (ou default export). Fonctionnement
+  identique à l'ancien middleware.
+- Pour vérifier une session côté serveur (Proxy, Server Components, Server Actions), utiliser
+  `supabase.auth.getClaims()` (vérifie le JWT localement via JWKS, rapide) — PAS `getUser()`
+  (fait un appel réseau à chaque fois) ni `getSession()` (non re-vérifié, jamais fiable côté
+  serveur). C'est la recommandation actuelle de Supabase (a remplacé le vieux conseil
+  "toujours utiliser getUser()").
+- `lib/supabase/{client,server,proxy}.ts` suivent le pattern officiel Supabase SSR pour
+  Next.js App Router (cookies via `@supabase/ssr`). `proxy.ts` (racine) délègue à
+  `lib/supabase/proxy.ts` (`updateSession`).
+- `lib/auth.ts` fait le pont entre l'utilisateur Supabase Auth et notre modèle métier :
+  `getOrCreateCurrentMember()` crée automatiquement un foyer + un Member OWNER à la toute
+  première visite authentifiée (pas de formulaire de création de foyer à l'inscription — le
+  foyer est nommé "Mon foyer" par défaut, renommable ensuite). `assertHouseholdAccess(householdId)`
+  est le garde-fou à utiliser dans toute Server Action/query touchant un foyer précis.
+- Confirmation email activée par défaut sur les projets Supabase hébergés (comportement gardé
+  tel quel, pas désactivé pour "simplifier" le dev) : après `signUp()`, l'utilisateur n'a pas de
+  session tant qu'il n'a pas cliqué le lien reçu par mail.
