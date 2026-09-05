@@ -39,6 +39,32 @@ model Member {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  nutritionGoals NutritionGoal[]
+}
+
+// Historique versionné : la ligne la plus récente (createdAt) pour un membre
+// est son objectif courant. On ne modifie jamais une ligne existante, ce qui
+// donne un historique gratuit (utile pour suivre l'évolution dans le temps).
+model NutritionGoal {
+  id       String @id @default(cuid())
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id])
+
+  // Valeurs calculées à partir du profil au moment du calcul (pour audit/
+  // historique, même si l'utilisateur modifie ensuite manuellement la cible).
+  bmr  Float
+  tdee Float
+
+  calorieTarget Int
+  proteinG      Int
+  carbsG        Int
+  fatG          Int
+
+  isManualOverride Boolean @default(false)
+  notes            String?
+
+  createdAt DateTime @default(now())
 }
 
 enum MemberRole {

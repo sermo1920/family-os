@@ -13,3 +13,9 @@ export const addMemberSchema = z.object({
 });
 
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
+
+// Même forme que addMemberSchema, sans "role" : on ne change jamais le rôle
+// (OWNER/ADULT/CHILD) d'un membre existant via ce formulaire de profil.
+export const updateProfileSchema = addMemberSchema.omit({ role: true });
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

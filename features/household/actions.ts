@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertHouseholdAccess } from "@/lib/auth";
-import { addMemberSchema } from "@/features/household/schema";
+import {
+  addMemberSchema,
+  updateProfileSchema,
+} from "@/features/household/schema";
 
 export type AddMemberActionState = { error: string | null };
 
@@ -50,5 +53,46 @@ export async function addMember(
   });
 
   revalidatePath("/household");
+  return { error: null };
+}
+
+export async function updateMemberProfile(
+  memberId: string,
+  _prevState: AddMemberActionState,
+  formData: FormData,
+): Promise<AddMemberActionState> {
+  const member = await prisma.member.findUniqueOrThrow({
+    where: { id: memberId },
+  });
+  await assertHouseholdAccess(member.householdId);
+
+  const parsed = updateProfileSchema.safeParse({
+    displayName: formData.get("displayName"),
+    dateOfBirth: emptyToUndefined(formData.get("dateOfBirth")),
+    sex: emptyToUndefined(formData.get("sex")),
+    heightCm: emptyToUndefined(formData.get("heightCm")),
+    weightKg: emptyToUndefined(formData.get("weightKg")),
+    activityLevel: emptyToUndefined(formData.get("activityLevel")),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
+  }
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: {
+      displayName: parsed.data.displayName,
+      dateOfBirth: parsed.data.dateOfBirth
+        ? new Date(parsed.data.dateOfBirth)
+        : null,
+      sex: parsed.data.sex ?? null,
+      heightCm: parsed.data.heightCm ?? null,
+      weightKg: parsed.data.weightKg ?? null,
+      activityLevel: parsed.data.activityLevel ?? null,
+    },
+  });
+
+  revalidatePath("/household");
+  revalidatePath(`/nutrition-goals/${memberId}`);
   return { error: null };
 }

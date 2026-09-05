@@ -1,0 +1,138 @@
+"use client";
+
+import { useActionState } from "react";
+import {
+  updateMemberProfile,
+  type AddMemberActionState,
+} from "@/features/household/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ActivityLevel, Sex } from "@/lib/generated/prisma/client";
+
+const initialState: AddMemberActionState = { error: null };
+
+const activityLevels: { value: ActivityLevel; label: string }[] = [
+  { value: "SEDENTARY", label: "Sédentaire (peu ou pas d'exercice)" },
+  { value: "LIGHT", label: "Légèrement actif (1-3 j/semaine)" },
+  { value: "MODERATE", label: "Modérément actif (3-5 j/semaine)" },
+  { value: "ACTIVE", label: "Actif (6-7 j/semaine)" },
+  { value: "VERY_ACTIVE", label: "Très actif (sport intense quotidien)" },
+];
+
+export function ProfileForm({
+  memberId,
+  displayName,
+  dateOfBirth,
+  sex,
+  heightCm,
+  weightKg,
+  activityLevel,
+}: {
+  memberId: string;
+  displayName: string;
+  dateOfBirth: Date | null;
+  sex: Sex | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  activityLevel: ActivityLevel | null;
+}) {
+  const action = updateMemberProfile.bind(null, memberId);
+  const [state, formAction, pending] = useActionState(action, initialState);
+
+  const dateOfBirthValue = dateOfBirth
+    ? dateOfBirth.toISOString().slice(0, 10)
+    : undefined;
+
+  return (
+    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="displayName">Prénom</Label>
+        <Input
+          id="displayName"
+          name="displayName"
+          defaultValue={displayName}
+          required
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="dateOfBirth">Date de naissance</Label>
+        <Input
+          id="dateOfBirth"
+          name="dateOfBirth"
+          type="date"
+          defaultValue={dateOfBirthValue}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="sex">Sexe</Label>
+        <Select name="sex" defaultValue={sex ?? undefined}>
+          <SelectTrigger id="sex">
+            <SelectValue placeholder="Non précisé" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="FEMALE">Femme</SelectItem>
+            <SelectItem value="MALE">Homme</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="heightCm">Taille (cm)</Label>
+        <Input
+          id="heightCm"
+          name="heightCm"
+          type="number"
+          min={0}
+          step="0.1"
+          defaultValue={heightCm ?? undefined}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="weightKg">Poids (kg)</Label>
+        <Input
+          id="weightKg"
+          name="weightKg"
+          type="number"
+          min={0}
+          step="0.1"
+          defaultValue={weightKg ?? undefined}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <Label htmlFor="activityLevel">Niveau d&apos;activité</Label>
+        <Select name="activityLevel" defaultValue={activityLevel ?? undefined}>
+          <SelectTrigger id="activityLevel">
+            <SelectValue placeholder="Non précisé" />
+          </SelectTrigger>
+          <SelectContent>
+            {activityLevels.map((level) => (
+              <SelectItem key={level.value} value={level.value}>
+                {level.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {state.error && (
+        <p className="text-destructive text-sm sm:col-span-2">{state.error}</p>
+      )}
+
+      <Button type="submit" disabled={pending} className="sm:col-span-2">
+        {pending ? "Enregistrement..." : "Enregistrer le profil"}
+      </Button>
+    </form>
+  );
+}

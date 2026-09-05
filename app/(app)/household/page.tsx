@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getOrCreateCurrentMember } from "@/lib/auth";
 import { getHouseholdWithMembers } from "@/features/household/queries";
 import { AddMemberForm } from "@/features/household/components/add-member-form";
@@ -36,9 +37,17 @@ export default async function HouseholdPage() {
             className="flex items-center justify-between rounded-md border px-4 py-3"
           >
             <span>{m.displayName}</span>
-            <span className="text-muted-foreground text-sm">
-              {roleLabels[m.role]}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground text-sm">
+                {roleLabels[m.role]}
+              </span>
+              <Link
+                href={`/nutrition-goals/${m.id}`}
+                className="text-sm underline"
+              >
+                Objectifs nutritionnels
+              </Link>
+            </div>
           </li>
         ))}
       </ul>
