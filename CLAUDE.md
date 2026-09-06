@@ -33,10 +33,14 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
     Postgres (`getShoppingListWithItems`) — car Postgres trie un type enum par sa position de
     déclaration dans le `CREATE TYPE`, pas alphabétiquement, donc l'ordre de l'enum dans
     `schema.prisma` doit rester synchronisé avec `categoryLabels`.
-  - `features/shopping-list/schema.ts` (`manualItemSchema.category`) réutilise
-    `ingredientSchema.shape.category` plutôt que de redéclarer la liste des valeurs : la première
-    version dupliquait la liste dans les deux fichiers, ce qui a fait dériver silencieusement
-    l'un des deux lors d'un précédent changement de catégories.
+  - `features/shopping-list/schema.ts` (`manualItemSchema.category`/`.unit`) réutilise
+    `ingredientSchema.shape.category`/`.baseUnit` plutôt que de redéclarer les listes de valeurs :
+    la première version dupliquait la liste de catégories dans les deux fichiers, ce qui a fait
+    dériver silencieusement l'un des deux lors d'un précédent changement de catégories — même
+    principe appliqué préventivement à `unit` (`Unit` : `GRAM`, `MILLILITER`, `PIECE` "pce",
+    `PACK` "paq"). Les libellés courts (`shortUnitLabels`, `features/ingredients/schema.ts`) sont
+    eux aussi centralisés pour la même raison plutôt que redéfinis dans chaque composant qui
+    affiche une quantité (liste de courses, vue d'une recette).
   - Renommer/retirer une valeur d'enum existante côté Postgres ne se fait jamais avec
     `prisma migrate dev` seul en environnement non interactif (il demande confirmation dès qu'il
     détecte une perte de données potentielle sur l'enum, même si la valeur n'est plus utilisée) :

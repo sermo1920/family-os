@@ -231,6 +231,8 @@ enum MealSlot {
 enum Unit {
   GRAM
   MILLILITER
+  PIECE
+  PACK
 }
 
 enum IngredientCategory {

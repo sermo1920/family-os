@@ -27,7 +27,7 @@ export const ingredientSchema = z.object({
     "HOME_GARDEN",
     "CONDIMENTS",
   ]),
-  baseUnit: z.enum(["GRAM", "MILLILITER"]),
+  baseUnit: z.enum(["GRAM", "MILLILITER", "PIECE", "PACK"]),
   caloriesPer100: z.coerce.number().nonnegative(),
   proteinPer100: z.coerce.number().nonnegative(),
   carbsPer100: z.coerce.number().nonnegative(),
@@ -68,4 +68,16 @@ export const categoryLabels: Record<IngredientInput["category"], string> = {
 export const unitLabels: Record<IngredientInput["baseUnit"], string> = {
   GRAM: "Grammes (g)",
   MILLILITER: "Millilitres (ml)",
+  PIECE: "Pièce (pce)",
+  PACK: "Paquet (paq)",
+};
+
+// Abréviations courtes utilisées partout où une quantité est affichée en
+// ligne (liste de courses, ingrédients d'une recette) plutôt que dans un
+// formulaire — voir shopping-list-items.tsx et recipe-view-dialog.tsx.
+export const shortUnitLabels: Record<IngredientInput["baseUnit"], string> = {
+  GRAM: "g",
+  MILLILITER: "ml",
+  PIECE: "pce",
+  PACK: "paq",
 };

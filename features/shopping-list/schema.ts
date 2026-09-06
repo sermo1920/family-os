@@ -14,5 +14,5 @@ export const manualItemSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),
   category: ingredientSchema.shape.category,
   quantity: z.coerce.number().positive(),
-  unit: z.enum(["GRAM", "MILLILITER"]),
+  unit: ingredientSchema.shape.baseUnit,
 });

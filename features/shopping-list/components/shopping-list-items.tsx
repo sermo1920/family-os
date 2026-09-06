@@ -2,15 +2,13 @@
 
 import { useOptimistic, useTransition } from "react";
 import { toggleItem, deleteItem } from "@/features/shopping-list/actions";
-import { categoryLabels } from "@/features/ingredients/schema";
+import { categoryLabels, shortUnitLabels } from "@/features/ingredients/schema";
 import type { getShoppingListWithItems } from "@/features/shopping-list/queries";
 
 type ShoppingListWithItems = NonNullable<
   Awaited<ReturnType<typeof getShoppingListWithItems>>
 >;
 type Item = ShoppingListWithItems["items"][number];
-
-const shortUnitLabels = { GRAM: "g", MILLILITER: "ml" } as const;
 
 type OptimisticAction =
   { type: "toggle"; id: string } | { type: "delete"; id: string };

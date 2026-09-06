@@ -2,6 +2,7 @@
 
 import { NutritionSummary } from "@/features/recipes/components/nutrition-summary";
 import type { RecipeNutrition } from "@/features/recipes/calculations";
+import { shortUnitLabels } from "@/features/ingredients/schema";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-const shortUnitLabels = { GRAM: "g", MILLILITER: "ml" } as const;
 
 export interface RecipeViewValues {
   name: string;
