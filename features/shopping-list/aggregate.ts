@@ -1,4 +1,7 @@
 import type { IngredientCategory, Unit } from "@/lib/generated/prisma/client";
+import { categoryLabels } from "@/features/ingredients/schema";
+
+const categoryOrder = Object.keys(categoryLabels) as IngredientCategory[];
 
 export interface IngredientUsage {
   ingredientId: string;
@@ -38,6 +41,7 @@ export function aggregateIngredientUsages(
 
   return Array.from(byIngredient.values()).sort(
     (a, b) =>
-      a.category.localeCompare(b.category) || a.name.localeCompare(b.name),
+      categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) ||
+      a.name.localeCompare(b.name),
   );
 }

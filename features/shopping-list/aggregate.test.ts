@@ -21,13 +21,14 @@ describe("aggregateIngredientUsages", () => {
       {
         ingredientId: "rice",
         name: "Riz",
-        category: "GROCERY",
+        category: "STARCHES",
         unit: "GRAM",
         quantity: 300,
       },
     ]);
 
-    // Trié par catégorie : "FRUITS_VEGETABLES" < "GROCERY" alphabétiquement.
+    // Trié par ordre de catégorie "rayon de magasin" : FRUITS_VEGETABLES
+    // vient avant STARCHES dans categoryLabels, peu importe l'ordre alphabétique.
     expect(result).toEqual([
       {
         ingredientId: "onion",
@@ -39,7 +40,7 @@ describe("aggregateIngredientUsages", () => {
       {
         ingredientId: "rice",
         name: "Riz",
-        category: "GROCERY",
+        category: "STARCHES",
         unit: "GRAM",
         quantity: 300,
       },

@@ -22,7 +22,28 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
   en environnement `node` par défaut, cf. `vitest.config.mts`).
 - Catalogue d'ingrédients : `IngredientCategory` est un enum Prisma fixe (pas une table séparée
   avec son propre CRUD) — simplification volontaire par rapport au plan initial, suffisant pour
-  grouper la liste de courses en Phase 5 sans complexité inutile.
+  grouper la liste de courses en Phase 5 sans complexité inutile. Volontairement élargi à 23
+  catégories façon rayons de supermarché (pas seulement les catégories liées aux repas : Beauté &
+  Hygiène, Bébé, Entretien, Animaux, Maison & Jardin en font partie) pour couvrir toutes les
+  courses du foyer, pas seulement celles des recettes planifiées.
+  - `categoryLabels` (`features/ingredients/schema.ts`) est la seule source de vérité pour le
+    libellé français ET l'ordre d'affichage de chaque catégorie (ordre volontairement calqué sur
+    un parcours de supermarché, `OTHER`/"Non classé" en premier). Cet ordre est repris par
+    `aggregate.ts` (tri de la liste de courses générée) et par l'`ORDER BY category ASC` Prisma/
+    Postgres (`getShoppingListWithItems`) — car Postgres trie un type enum par sa position de
+    déclaration dans le `CREATE TYPE`, pas alphabétiquement, donc l'ordre de l'enum dans
+    `schema.prisma` doit rester synchronisé avec `categoryLabels`.
+  - `features/shopping-list/schema.ts` (`manualItemSchema.category`) réutilise
+    `ingredientSchema.shape.category` plutôt que de redéclarer la liste des valeurs : la première
+    version dupliquait la liste dans les deux fichiers, ce qui a fait dériver silencieusement
+    l'un des deux lors d'un précédent changement de catégories.
+  - Renommer/retirer une valeur d'enum existante côté Postgres ne se fait jamais avec
+    `prisma migrate dev` seul en environnement non interactif (il demande confirmation dès qu'il
+    détecte une perte de données potentielle sur l'enum, même si la valeur n'est plus utilisée) :
+    passer par un couple de migrations — 1) ajouter les nouvelles valeurs (additif, sans prompt), 2) mettre à jour les lignes existantes vers les nouvelles valeurs, 3) générer le SQL de
+    suppression des anciennes valeurs via `prisma migrate diff --from-config-datasource --to-schema
+prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migration, puis
+    l'appliquer avec `prisma migrate deploy` (qui n'a pas ce prompt interactif).
 - Planning (`PlannedMeal`) : dates stockées en minuit UTC (jour seul, l'heure n'est pas utilisée) —
   voir `features/meal-plan/dates.ts` (testé) pour tout calcul de semaine/jour, ne pas manipuler les
   dates à la main ailleurs. `useOptimistic` n'est utilisé que pour le retrait d'un repas (clic

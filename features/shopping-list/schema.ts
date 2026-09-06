@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ingredientSchema } from "@/features/ingredients/schema";
 
 export const generateListSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),
@@ -8,16 +9,7 @@ export const generateListSchema = z.object({
 
 export const manualItemSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),
-  category: z.enum([
-    "FRUITS_VEGETABLES",
-    "DAIRY",
-    "MEAT_FISH",
-    "GROCERY",
-    "BAKERY",
-    "BEVERAGES",
-    "FROZEN",
-    "OTHER",
-  ]),
+  category: ingredientSchema.shape.category,
   quantity: z.coerce.number().positive(),
   unit: z.enum(["GRAM", "MILLILITER"]),
 });
