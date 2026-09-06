@@ -65,6 +65,15 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
     augmentée plutôt que dupliqué en une seconde ligne. Les deux champs restent non-null sur les
     listes créées par l'ancien flux (affichage de la plage conservé pour l'historique), mais ne
     sont plus jamais écrits par le nouveau code.
+  - "Mémoire" des articles ajoutés à la main (`listKnownShoppingItems`,
+    `features/shopping-list/queries.ts`) : quand on retape un nom déjà utilisé dans
+    `AddManualItemForm`, catégorie/quantité/unité se pré-remplissent avec les dernières valeurs
+    utilisées pour ce nom (dédupliqué insensible à la casse, le plus récent gagne via
+    `ShoppingListItem.createdAt`). Portée volontairement limitée aux articles manuels
+    (`ingredientId: null`) — les articles issus d'une recette relèvent déjà du catalogue
+    d'ingrédients, ce n'est pas la même mémoire. Implémenté avec un simple `<input list=...>` /
+    `<datalist>` HTML natif (autocomplete du navigateur) plutôt qu'un composant de recherche
+    dédié : le nombre d'articles connus par foyer reste petit, pas besoin de plus.
 
 ## Playwright (e2e)
 

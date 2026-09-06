@@ -217,7 +217,8 @@ model ShoppingListItem {
   quantity Float
   unit     Unit
 
-  isChecked Boolean @default(false)
+  isChecked Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum MealSlot {

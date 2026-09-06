@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { assertHouseholdAccess } from "@/lib/auth";
-import { getShoppingListWithItems } from "@/features/shopping-list/queries";
+import {
+  getShoppingListWithItems,
+  listKnownShoppingItems,
+} from "@/features/shopping-list/queries";
 import { ShoppingListItems } from "@/features/shopping-list/components/shopping-list-items";
 import { AddManualItemForm } from "@/features/shopping-list/components/add-manual-item-form";
 import { ImportPlannedMealsDialog } from "@/features/shopping-list/components/import-planned-meals-dialog";
@@ -21,6 +24,8 @@ export default async function ShoppingListPage({
   if (!shoppingList) notFound();
 
   await assertHouseholdAccess(shoppingList.householdId);
+
+  const knownItems = await listKnownShoppingItems(shoppingList.householdId);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -50,7 +55,10 @@ export default async function ShoppingListPage({
           <CardTitle>Ajouter un article</CardTitle>
         </CardHeader>
         <CardContent>
-          <AddManualItemForm shoppingListId={shoppingList.id} />
+          <AddManualItemForm
+            shoppingListId={shoppingList.id}
+            knownItems={knownItems}
+          />
         </CardContent>
       </Card>
     </div>
