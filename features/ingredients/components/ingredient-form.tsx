@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   createIngredient,
   type IngredientActionState,
@@ -19,9 +19,23 @@ import {
 
 const initialState: IngredientActionState = { error: null };
 
-export function IngredientForm({ householdId }: { householdId: string }) {
+export function IngredientForm({
+  householdId,
+  onSuccess,
+}: {
+  householdId: string;
+  onSuccess?: () => void;
+}) {
   const action = createIngredient.bind(null, householdId);
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending && !state.error) {
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state.error, onSuccess]);
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
