@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getOrCreateCurrentMember } from "@/lib/auth";
 import { listShoppingLists } from "@/features/shopping-list/queries";
-import { GenerateForm } from "@/features/shopping-list/components/generate-form";
+import { CreateListForm } from "@/features/shopping-list/components/create-list-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -25,10 +25,12 @@ export default async function ShoppingListsPage() {
               className="hover:bg-accent flex items-center justify-between rounded-md border px-4 py-3"
             >
               <span className="font-medium">{list.name}</span>
-              <span className="text-muted-foreground text-sm">
-                {dateFormatter.format(list.startDate)} –{" "}
-                {dateFormatter.format(list.endDate)}
-              </span>
+              {list.startDate && list.endDate && (
+                <span className="text-muted-foreground text-sm">
+                  {dateFormatter.format(list.startDate)} –{" "}
+                  {dateFormatter.format(list.endDate)}
+                </span>
+              )}
             </Link>
           </li>
         ))}
@@ -41,10 +43,10 @@ export default async function ShoppingListsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Générer une liste</CardTitle>
+          <CardTitle>Nouvelle liste</CardTitle>
         </CardHeader>
         <CardContent>
-          <GenerateForm householdId={member.householdId} />
+          <CreateListForm householdId={member.householdId} />
         </CardContent>
       </Card>
     </div>

@@ -6,21 +6,53 @@ import { prisma } from "@/lib/db";
 import { assertHouseholdAccess } from "@/lib/auth";
 import { aggregateIngredientUsages } from "@/features/shopping-list/aggregate";
 import {
-  generateListSchema,
+  createListSchema,
+  importPlannedMealsSchema,
   manualItemSchema,
 } from "@/features/shopping-list/schema";
 
 export type ShoppingListActionState = { error: string | null };
 
-export async function generateShoppingList(
+export async function createShoppingList(
   householdId: string,
   _prevState: ShoppingListActionState,
   formData: FormData,
 ): Promise<ShoppingListActionState> {
   await assertHouseholdAccess(householdId);
 
-  const parsed = generateListSchema.safeParse({
+  const parsed = createListSchema.safeParse({
     name: formData.get("name"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
+  }
+
+  const shoppingList = await prisma.shoppingList.create({
+    data: { householdId, name: parsed.data.name },
+  });
+
+  revalidatePath("/shopping-lists");
+  redirect(`/shopping-lists/${shoppingList.id}`);
+}
+
+/**
+ * Ajoute à une liste existante les ingrédients des repas planifiés sur une
+ * plage de dates : contrairement à l'ancien flux (une génération = une
+ * liste), une liste peut recevoir plusieurs imports au fil du temps, en plus
+ * des articles ajoutés à la main. Un ingrédient déjà présent dans la liste
+ * (même `ingredientId`) voit sa quantité augmentée plutôt que dupliquée.
+ */
+export async function importPlannedMeals(
+  shoppingListId: string,
+  _prevState: ShoppingListActionState,
+  formData: FormData,
+): Promise<ShoppingListActionState> {
+  const shoppingList = await prisma.shoppingList.findUniqueOrThrow({
+    where: { id: shoppingListId },
+  });
+  await assertHouseholdAccess(shoppingList.householdId);
+
+  const parsed = importPlannedMealsSchema.safeParse({
     startDate: formData.get("startDate"),
     endDate: formData.get("endDate"),
   });
@@ -41,7 +73,7 @@ export async function generateShoppingList(
 
   const meals = await prisma.plannedMeal.findMany({
     where: {
-      householdId,
+      householdId: shoppingList.householdId,
       date: { gte: startDate, lt: endDateExclusive },
     },
     include: {
@@ -60,26 +92,42 @@ export async function generateShoppingList(
   );
   const aggregated = aggregateIngredientUsages(usages);
 
-  const shoppingList = await prisma.shoppingList.create({
-    data: {
-      householdId,
-      name: parsed.data.name,
-      startDate,
-      endDate: new Date(`${parsed.data.endDate}T00:00:00.000Z`),
-      items: {
-        create: aggregated.map((item) => ({
-          ingredientId: item.ingredientId,
-          name: item.name,
-          category: item.category,
-          quantity: Math.round(item.quantity * 10) / 10,
-          unit: item.unit,
-        })),
-      },
-    },
-  });
+  if (aggregated.length === 0) {
+    return { error: "Aucun repas planifié sur cette période." };
+  }
 
-  revalidatePath("/shopping-lists");
-  redirect(`/shopping-lists/${shoppingList.id}`);
+  const existingItems = await prisma.shoppingListItem.findMany({
+    where: { shoppingListId, ingredientId: { not: null } },
+  });
+  const existingByIngredient = new Map(
+    existingItems.map((item) => [item.ingredientId, item]),
+  );
+
+  await prisma.$transaction(
+    aggregated.map((usage) => {
+      const roundedQuantity = Math.round(usage.quantity * 10) / 10;
+      const existing = existingByIngredient.get(usage.ingredientId);
+      if (existing) {
+        return prisma.shoppingListItem.update({
+          where: { id: existing.id },
+          data: { quantity: existing.quantity + roundedQuantity },
+        });
+      }
+      return prisma.shoppingListItem.create({
+        data: {
+          shoppingListId,
+          ingredientId: usage.ingredientId,
+          name: usage.name,
+          category: usage.category,
+          quantity: roundedQuantity,
+          unit: usage.unit,
+        },
+      });
+    }),
+  );
+
+  revalidatePath(`/shopping-lists/${shoppingListId}`);
+  return { error: null };
 }
 
 async function getShoppingListIdForItem(itemId: string) {

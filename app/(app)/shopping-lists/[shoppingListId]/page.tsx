@@ -3,6 +3,7 @@ import { assertHouseholdAccess } from "@/lib/auth";
 import { getShoppingListWithItems } from "@/features/shopping-list/queries";
 import { ShoppingListItems } from "@/features/shopping-list/components/shopping-list-items";
 import { AddManualItemForm } from "@/features/shopping-list/components/add-manual-item-form";
+import { ImportPlannedMealsDialog } from "@/features/shopping-list/components/import-planned-meals-dialog";
 import { DeleteListButton } from "@/features/shopping-list/components/delete-list-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -26,15 +27,20 @@ export default async function ShoppingListPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{shoppingList.name}</h1>
-          <p className="text-muted-foreground text-sm">
-            {dateFormatter.format(shoppingList.startDate)} –{" "}
-            {dateFormatter.format(shoppingList.endDate)}
-          </p>
+          {shoppingList.startDate && shoppingList.endDate && (
+            <p className="text-muted-foreground text-sm">
+              {dateFormatter.format(shoppingList.startDate)} –{" "}
+              {dateFormatter.format(shoppingList.endDate)}
+            </p>
+          )}
         </div>
-        <DeleteListButton
-          shoppingListId={shoppingList.id}
-          listName={shoppingList.name}
-        />
+        <div className="flex items-center gap-2">
+          <ImportPlannedMealsDialog shoppingListId={shoppingList.id} />
+          <DeleteListButton
+            shoppingListId={shoppingList.id}
+            listName={shoppingList.name}
+          />
+        </div>
       </div>
 
       <ShoppingListItems items={shoppingList.items} />

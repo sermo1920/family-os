@@ -187,9 +187,13 @@ model ShoppingList {
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
 
-  name      String
-  startDate DateTime
-  endDate   DateTime
+  name String
+  // Optionnelles : une liste n'est plus forcément générée à partir d'une
+  // plage de dates du planning (voir importPlannedMeals) — elle peut être
+  // un simple panier créé à la main. Gardées pour l'affichage des listes
+  // historiques créées avec l'ancien flux (une seule génération = une plage).
+  startDate DateTime?
+  endDate   DateTime?
 
   createdAt DateTime @default(now())
 

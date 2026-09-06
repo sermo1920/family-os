@@ -56,6 +56,15 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
   si l'ingrédient source est renommé/supprimé ensuite (`onDelete: SetNull` sur la relation).
   L'agrégation (`features/shopping-list/aggregate.ts`) est une fonction pure testée : deux recettes
   partageant un ingrédient doivent donner une seule ligne sommée.
+  - `ShoppingList.startDate`/`endDate` sont **optionnels** : une liste n'est plus générée
+    uniquement à partir d'une plage du planning (ancien flux `generateShoppingList`, retiré).
+    `createShoppingList` crée maintenant une liste vide (juste un nom) ; `importPlannedMeals`
+    ajoute à une liste déjà existante les ingrédients des repas planifiés sur une plage de dates
+    choisie à ce moment-là — utilisable plusieurs fois sur la même liste, en plus des articles
+    ajoutés à la main. Un ingrédient déjà présent (même `ingredientId`) voit sa quantité
+    augmentée plutôt que dupliqué en une seconde ligne. Les deux champs restent non-null sur les
+    listes créées par l'ancien flux (affichage de la plage conservé pour l'historique), mais ne
+    sont plus jamais écrits par le nouveau code.
 
 ## Playwright (e2e)
 
