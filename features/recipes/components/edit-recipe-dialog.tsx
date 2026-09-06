@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { PencilIcon } from "lucide-react";
 import {
-  IngredientForm,
-  type IngredientFormValues,
-} from "@/features/ingredients/components/ingredient-form";
+  RecipeForm,
+  type IngredientOption,
+  type RecipeFormValues,
+} from "@/features/recipes/components/recipe-form";
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function EditIngredientDialog({
+export function EditRecipeDialog({
   householdId,
-  ingredient,
+  recipe,
+  ingredientOptions,
 }: {
   householdId: string;
-  ingredient: IngredientFormValues;
+  recipe: RecipeFormValues;
+  ingredientOptions: IngredientOption[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -29,20 +32,21 @@ export function EditIngredientDialog({
         render={
           <button
             type="button"
-            aria-label={`Modifier ${ingredient.name}`}
+            aria-label={`Modifier ${recipe.name}`}
             className="text-muted-foreground hover:border-foreground/40 hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-full border"
           />
         }
       >
         <PencilIcon className="size-3.5" />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Modifier {ingredient.name}</DialogTitle>
+          <DialogTitle>Modifier {recipe.name}</DialogTitle>
         </DialogHeader>
-        <IngredientForm
+        <RecipeForm
           householdId={householdId}
-          ingredient={ingredient}
+          ingredientOptions={ingredientOptions}
+          recipe={recipe}
           onSuccess={() => setOpen(false)}
         />
       </DialogContent>

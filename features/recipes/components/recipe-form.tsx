@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import {
   createRecipe,
+  updateRecipe,
   type RecipeActionState,
 } from "@/features/recipes/actions";
 import { Button } from "@/components/ui/button";
@@ -23,17 +24,44 @@ export interface IngredientOption {
   name: string;
 }
 
+export interface RecipeFormValues {
+  id: string;
+  name: string;
+  servings: number;
+  instructions: string | null;
+  ingredients: { ingredientId: string; quantity: number }[];
+}
+
 export function RecipeForm({
   householdId,
   ingredientOptions,
+  recipe,
+  onSuccess,
 }: {
   householdId: string;
   ingredientOptions: IngredientOption[];
+  recipe?: RecipeFormValues;
+  onSuccess?: () => void;
 }) {
-  const action = createRecipe.bind(null, householdId);
+  const action = recipe
+    ? updateRecipe.bind(null, recipe.id)
+    : createRecipe.bind(null, householdId);
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending && !state.error) {
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state.error, onSuccess]);
+
   const rowIdPrefix = useId();
-  const [rowKeys, setRowKeys] = useState<string[]>([`${rowIdPrefix}-0`]);
+  const [rowKeys, setRowKeys] = useState<string[]>(() =>
+    recipe && recipe.ingredients.length > 0
+      ? recipe.ingredients.map((_, index) => `${rowIdPrefix}-${index}`)
+      : [`${rowIdPrefix}-0`],
+  );
 
   const ingredientItems = Object.fromEntries(
     ingredientOptions.map((option) => [option.id, option.name]),
@@ -43,7 +71,7 @@ export function RecipeForm({
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">Nom de la recette</Label>
-        <Input id="name" name="name" required />
+        <Input id="name" name="name" defaultValue={recipe?.name} required />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -53,7 +81,7 @@ export function RecipeForm({
           name="servings"
           type="number"
           min={1}
-          defaultValue={4}
+          defaultValue={recipe?.servings ?? 4}
           required
         />
       </div>
@@ -64,6 +92,7 @@ export function RecipeForm({
           id="instructions"
           name="instructions"
           rows={4}
+          defaultValue={recipe?.instructions ?? undefined}
           className="border-input rounded-lg border bg-transparent px-2.5 py-1.5 text-sm"
         />
       </div>
@@ -77,7 +106,11 @@ export function RecipeForm({
         )}
         {rowKeys.map((key, index) => (
           <div key={key} className="flex items-center gap-2">
-            <Select name="ingredientId" items={ingredientItems}>
+            <Select
+              name="ingredientId"
+              items={ingredientItems}
+              defaultValue={recipe?.ingredients[index]?.ingredientId}
+            >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Choisir un ingrédient" />
               </SelectTrigger>
@@ -96,6 +129,7 @@ export function RecipeForm({
               step="0.1"
               placeholder="Quantité"
               className="w-28"
+              defaultValue={recipe?.ingredients[index]?.quantity}
               required
             />
             <Button
@@ -126,7 +160,11 @@ export function RecipeForm({
       {state.error && <p className="text-destructive text-sm">{state.error}</p>}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Création..." : "Créer la recette"}
+        {pending
+          ? "Enregistrement..."
+          : recipe
+            ? "Enregistrer"
+            : "Créer la recette"}
       </Button>
     </form>
   );

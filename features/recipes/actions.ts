@@ -66,6 +66,57 @@ export async function createRecipe(
   redirect(`/recipes/${recipe.id}`);
 }
 
+export async function updateRecipe(
+  recipeId: string,
+  _prevState: RecipeActionState,
+  formData: FormData,
+): Promise<RecipeActionState> {
+  const recipe = await prisma.recipe.findUniqueOrThrow({
+    where: { id: recipeId },
+  });
+  await assertHouseholdAccess(recipe.householdId);
+
+  const parsed = parseRecipeForm(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
+  }
+
+  const ingredientIds = parsed.data.ingredients.map((i) => i.ingredientId);
+  const ownedCount = await prisma.ingredient.count({
+    where: { id: { in: ingredientIds }, householdId: recipe.householdId },
+  });
+  if (ownedCount !== new Set(ingredientIds).size) {
+    return { error: "Un des ingrédients sélectionnés est introuvable." };
+  }
+
+  await prisma.recipe.update({
+    where: { id: recipeId },
+    data: {
+      name: parsed.data.name,
+      instructions: parsed.data.instructions,
+      servings: parsed.data.servings,
+      // On remplace entièrement la liste plutôt que de calculer un diff :
+      // une recette a rarement plus de quelques ingrédients, la simplicité
+      // l'emporte sur l'économie de quelques requêtes.
+      ingredients: {
+        deleteMany: {},
+        create: parsed.data.ingredients.map((ingredient) => ({
+          ingredientId: ingredient.ingredientId,
+          quantity: ingredient.quantity,
+        })),
+      },
+    },
+  });
+
+  // Pas de redirect ici (contrairement à createRecipe) : on reste sur la
+  // page recette déjà affichée, et Next.js rafraîchit automatiquement sa
+  // Server Component après une Server Action — revalidatePath suffit pour
+  // que les données à jour s'affichent dès la fermeture de la popup.
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/ingredients");
+  return { error: null };
+}
+
 export async function deleteRecipe(recipeId: string): Promise<void> {
   const recipe = await prisma.recipe.findUniqueOrThrow({
     where: { id: recipeId },

@@ -1,25 +1,19 @@
 "use client";
 
-import { useTransition } from "react";
 import { deleteIngredient } from "@/features/ingredients/actions";
-import { Button } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 
 export function DeleteIngredientButton({
   ingredientId,
+  ingredientName,
 }: {
   ingredientId: string;
+  ingredientName: string;
 }) {
-  const [pending, startTransition] = useTransition();
-
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={pending}
-      onClick={() => startTransition(() => deleteIngredient(ingredientId))}
-    >
-      Supprimer
-    </Button>
+    <ConfirmDeleteButton
+      itemLabel={ingredientName}
+      onConfirm={() => deleteIngredient(ingredientId)}
+    />
   );
 }

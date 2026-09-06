@@ -31,7 +31,10 @@ export default async function ShoppingListPage({
             {dateFormatter.format(shoppingList.endDate)}
           </p>
         </div>
-        <DeleteListButton shoppingListId={shoppingList.id} />
+        <DeleteListButton
+          shoppingListId={shoppingList.id}
+          listName={shoppingList.name}
+        />
       </div>
 
       <ShoppingListItems items={shoppingList.items} />

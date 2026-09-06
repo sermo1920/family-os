@@ -60,7 +60,10 @@ export default async function IngredientsPage() {
                           householdId={member.householdId}
                           ingredient={ingredient}
                         />
-                        <DeleteIngredientButton ingredientId={ingredient.id} />
+                        <DeleteIngredientButton
+                          ingredientId={ingredient.id}
+                          ingredientName={ingredient.name}
+                        />
                       </div>
                     </li>
                   ))}

@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { assertHouseholdAccess } from "@/lib/auth";
 import { getRecipeWithIngredients } from "@/features/recipes/queries";
+import { listIngredients } from "@/features/ingredients/queries";
 import {
   computeNutritionPerPortion,
   computeRecipeNutritionTotal,
 } from "@/features/recipes/calculations";
 import { NutritionSummary } from "@/features/recipes/components/nutrition-summary";
 import { DeleteRecipeButton } from "@/features/recipes/components/delete-recipe-button";
+import { EditRecipeDialog } from "@/features/recipes/components/edit-recipe-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const shortUnitLabels = { GRAM: "g", MILLILITER: "ml" } as const;
@@ -20,6 +22,8 @@ export default async function RecipePage({
   if (!recipe) notFound();
 
   await assertHouseholdAccess(recipe.householdId);
+
+  const ingredients = await listIngredients(recipe.householdId);
 
   const total = computeRecipeNutritionTotal(
     recipe.ingredients.map((ri) => ({
@@ -36,7 +40,30 @@ export default async function RecipePage({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{recipe.name}</h1>
-        <DeleteRecipeButton recipeId={recipe.id} redirectTo="/ingredients" />
+        <div className="flex items-center gap-1">
+          <EditRecipeDialog
+            householdId={recipe.householdId}
+            ingredientOptions={ingredients.map((i) => ({
+              id: i.id,
+              name: i.name,
+            }))}
+            recipe={{
+              id: recipe.id,
+              name: recipe.name,
+              servings: recipe.servings,
+              instructions: recipe.instructions,
+              ingredients: recipe.ingredients.map((ri) => ({
+                ingredientId: ri.ingredientId,
+                quantity: ri.quantity,
+              })),
+            }}
+          />
+          <DeleteRecipeButton
+            recipeId={recipe.id}
+            recipeName={recipe.name}
+            redirectTo="/ingredients"
+          />
+        </div>
       </div>
 
       <Card>

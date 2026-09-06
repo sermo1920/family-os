@@ -1,32 +1,23 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteShoppingList } from "@/features/shopping-list/actions";
-import { Button } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 
 export function DeleteListButton({
   shoppingListId,
+  listName,
 }: {
   shoppingListId: string;
+  listName: string;
 }) {
-  const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          await deleteShoppingList(shoppingListId);
-          router.push("/shopping-lists");
-        })
-      }
-    >
-      Supprimer la liste
-    </Button>
+    <ConfirmDeleteButton
+      itemLabel={listName}
+      onConfirm={() => deleteShoppingList(shoppingListId)}
+      onSuccess={() => router.push("/shopping-lists")}
+    />
   );
 }

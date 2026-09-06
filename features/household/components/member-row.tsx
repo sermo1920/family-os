@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { XIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import { ProfileForm } from "@/features/household/components/profile-form";
 import { deleteMember } from "@/features/household/actions";
 import { createInvitation } from "@/features/household/invitation-actions";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,27 +49,11 @@ export function MemberRow({
 }) {
   const [isEditing, setIsEditing] = useState(false);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletePending, startDeleteTransition] = useTransition();
-
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState(existingInviteLink);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [invitePending, startInviteTransition] = useTransition();
   const [copied, setCopied] = useState(false);
-
-  function handleDelete() {
-    setDeleteError(null);
-    startDeleteTransition(async () => {
-      const result = await deleteMember(member.id);
-      if (result.error) {
-        setDeleteError(result.error);
-      } else {
-        setDeleteOpen(false);
-      }
-    });
-  }
 
   function handleGenerateInvite() {
     setInviteError(null);
@@ -128,10 +113,11 @@ export function MemberRow({
         </span>
         <button
           type="button"
-          className="text-sm underline"
+          aria-label={`Modifier ${member.displayName}`}
           onClick={() => setIsEditing(true)}
+          className="text-muted-foreground hover:border-foreground/40 hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-full border"
         >
-          Modifier
+          <PencilIcon className="size-3.5" />
         </button>
         <Link
           href={`/nutrition-goals/${member.id}`}
@@ -207,53 +193,11 @@ export function MemberRow({
           </Dialog>
         )}
         {!member.linkedUserId && (
-          <Dialog
-            open={deleteOpen}
-            onOpenChange={(open) => {
-              setDeleteOpen(open);
-              if (!open) setDeleteError(null);
-            }}
-          >
-            <DialogTrigger
-              render={
-                <button
-                  type="button"
-                  aria-label={`Supprimer ${member.displayName}`}
-                  className="text-muted-foreground hover:border-destructive hover:text-destructive flex size-6 items-center justify-center rounded-full border"
-                />
-              }
-            >
-              <XIcon className="size-3.5" />
-            </DialogTrigger>
-            <DialogContent showCloseButton={false}>
-              <DialogHeader>
-                <DialogTitle>Supprimer {member.displayName} ?</DialogTitle>
-                <DialogDescription>
-                  Cette action est irréversible : son historique
-                  d&apos;objectifs nutritionnels et ses présences aux repas
-                  planifiés seront aussi supprimés.
-                </DialogDescription>
-              </DialogHeader>
-              {deleteError && (
-                <p className="text-destructive text-sm">{deleteError}</p>
-              )}
-              <DialogFooter>
-                <DialogClose
-                  render={<Button type="button" variant="outline" />}
-                >
-                  Annuler
-                </DialogClose>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={deletePending}
-                  onClick={handleDelete}
-                >
-                  {deletePending ? "Suppression..." : "Supprimer"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <ConfirmDeleteButton
+            itemLabel={member.displayName}
+            description="Cette action est irréversible : son historique d'objectifs nutritionnels et ses présences aux repas planifiés seront aussi supprimés."
+            onConfirm={() => deleteMember(member.id)}
+          />
         )}
       </div>
     </li>
