@@ -36,7 +36,7 @@ export default async function RecipePage({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{recipe.name}</h1>
-        <DeleteRecipeButton recipeId={recipe.id} redirectTo="/recipes" />
+        <DeleteRecipeButton recipeId={recipe.id} redirectTo="/ingredients" />
       </div>
 
       <Card>

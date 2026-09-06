@@ -62,7 +62,7 @@ export async function createRecipe(
     },
   });
 
-  revalidatePath("/recipes");
+  revalidatePath("/ingredients");
   redirect(`/recipes/${recipe.id}`);
 }
 
@@ -73,5 +73,5 @@ export async function deleteRecipe(recipeId: string): Promise<void> {
   await assertHouseholdAccess(recipe.householdId);
 
   await prisma.recipe.delete({ where: { id: recipeId } });
-  revalidatePath("/recipes");
+  revalidatePath("/ingredients");
 }
