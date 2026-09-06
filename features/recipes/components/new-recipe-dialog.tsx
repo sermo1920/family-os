@@ -35,6 +35,7 @@ export function NewRecipeDialog({
         <RecipeForm
           householdId={householdId}
           ingredientOptions={ingredientOptions}
+          onSuccess={() => setOpen(false)}
         />
       </DialogContent>
     </Dialog>

@@ -1,19 +1,30 @@
-import Link from "next/link";
 import { getOrCreateCurrentMember } from "@/lib/auth";
 import { listIngredients } from "@/features/ingredients/queries";
-import { listRecipes } from "@/features/recipes/queries";
+import { listRecipesWithIngredients } from "@/features/recipes/queries";
+import {
+  computeNutritionPerPortion,
+  computeRecipeNutritionTotal,
+} from "@/features/recipes/calculations";
 import { categoryLabels, unitLabels } from "@/features/ingredients/schema";
 import { AddIngredientDialog } from "@/features/ingredients/components/add-ingredient-dialog";
 import { EditIngredientDialog } from "@/features/ingredients/components/edit-ingredient-dialog";
 import { DeleteIngredientButton } from "@/features/ingredients/components/delete-ingredient-button";
 import { NewRecipeDialog } from "@/features/recipes/components/new-recipe-dialog";
+import { RecipeViewDialog } from "@/features/recipes/components/recipe-view-dialog";
+import { EditRecipeDialog } from "@/features/recipes/components/edit-recipe-dialog";
+import { DeleteRecipeButton } from "@/features/recipes/components/delete-recipe-button";
 
 export default async function IngredientsPage() {
   const member = await getOrCreateCurrentMember();
   const [ingredients, recipes] = await Promise.all([
     listIngredients(member.householdId),
-    listRecipes(member.householdId),
+    listRecipesWithIngredients(member.householdId),
   ]);
+
+  const ingredientOptions = ingredients.map((i) => ({
+    id: i.id,
+    name: i.name,
+  }));
 
   const categories = Object.keys(categoryLabels) as Array<
     keyof typeof categoryLabels
@@ -83,27 +94,68 @@ export default async function IngredientsPage() {
             <h2 className="text-lg font-medium">Recettes</h2>
             <NewRecipeDialog
               householdId={member.householdId}
-              ingredientOptions={ingredients.map((i) => ({
-                id: i.id,
-                name: i.name,
-              }))}
+              ingredientOptions={ingredientOptions}
             />
           </div>
 
           <ul className="flex flex-col gap-2">
-            {recipes.map((recipe) => (
-              <li key={recipe.id}>
-                <Link
-                  href={`/recipes/${recipe.id}`}
-                  className="hover:bg-accent flex items-center justify-between rounded-md border px-4 py-3"
+            {recipes.map((recipe) => {
+              const total = computeRecipeNutritionTotal(
+                recipe.ingredients.map((ri) => ({
+                  quantity: ri.quantity,
+                  caloriesPer100: ri.ingredient.caloriesPer100,
+                  proteinPer100: ri.ingredient.proteinPer100,
+                  carbsPer100: ri.ingredient.carbsPer100,
+                  fatPer100: ri.ingredient.fatPer100,
+                })),
+              );
+              const perPortion = computeNutritionPerPortion(
+                total,
+                recipe.servings,
+              );
+
+              return (
+                <li
+                  key={recipe.id}
+                  className="flex items-center justify-between overflow-hidden rounded-md border"
                 >
-                  <span className="font-medium">{recipe.name}</span>
-                  <span className="text-muted-foreground text-sm">
-                    {recipe.servings} portion{recipe.servings > 1 ? "s" : ""}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                  <RecipeViewDialog
+                    recipe={{
+                      name: recipe.name,
+                      servings: recipe.servings,
+                      instructions: recipe.instructions,
+                      perPortion,
+                      ingredients: recipe.ingredients.map((ri) => ({
+                        id: ri.id,
+                        name: ri.ingredient.name,
+                        quantity: ri.quantity,
+                        baseUnit: ri.ingredient.baseUnit,
+                      })),
+                    }}
+                  />
+                  <div className="flex items-center gap-1 pr-4">
+                    <EditRecipeDialog
+                      householdId={member.householdId}
+                      ingredientOptions={ingredientOptions}
+                      recipe={{
+                        id: recipe.id,
+                        name: recipe.name,
+                        servings: recipe.servings,
+                        instructions: recipe.instructions,
+                        ingredients: recipe.ingredients.map((ri) => ({
+                          ingredientId: ri.ingredientId,
+                          quantity: ri.quantity,
+                        })),
+                      }}
+                    />
+                    <DeleteRecipeButton
+                      recipeId={recipe.id}
+                      recipeName={recipe.name}
+                    />
+                  </div>
+                </li>
+              );
+            })}
             {recipes.length === 0 && (
               <p className="text-muted-foreground text-sm">
                 Aucune recette pour le moment.

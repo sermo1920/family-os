@@ -7,9 +7,10 @@ export async function listRecipes(householdId: string) {
   });
 }
 
-export async function getRecipeWithIngredients(recipeId: string) {
-  return prisma.recipe.findUnique({
-    where: { id: recipeId },
+export async function listRecipesWithIngredients(householdId: string) {
+  return prisma.recipe.findMany({
+    where: { householdId },
+    orderBy: { name: "asc" },
     include: { ingredients: { include: { ingredient: true } } },
   });
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { assertHouseholdAccess } from "@/lib/auth";
 import { recipeSchema } from "@/features/recipes/schema";
@@ -47,7 +46,7 @@ export async function createRecipe(
     return { error: "Un des ingrédients sélectionnés est introuvable." };
   }
 
-  const recipe = await prisma.recipe.create({
+  await prisma.recipe.create({
     data: {
       householdId,
       name: parsed.data.name,
@@ -63,7 +62,7 @@ export async function createRecipe(
   });
 
   revalidatePath("/ingredients");
-  redirect(`/recipes/${recipe.id}`);
+  return { error: null };
 }
 
 export async function updateRecipe(
@@ -108,11 +107,11 @@ export async function updateRecipe(
     },
   });
 
-  // Pas de redirect ici (contrairement à createRecipe) : on reste sur la
-  // page recette déjà affichée, et Next.js rafraîchit automatiquement sa
-  // Server Component après une Server Action — revalidatePath suffit pour
-  // que les données à jour s'affichent dès la fermeture de la popup.
-  revalidatePath(`/recipes/${recipeId}`);
+  // Pas de redirect : la recette est éditée depuis une popup sur la page
+  // /ingredients (plus de page dédiée par recette), et Next.js rafraîchit
+  // automatiquement la Server Component appelante après une Server Action —
+  // revalidatePath suffit pour que la liste et la popup de vue affichent
+  // les données à jour dès la fermeture de la popup d'édition.
   revalidatePath("/ingredients");
   return { error: null };
 }
