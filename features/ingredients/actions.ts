@@ -39,6 +39,30 @@ export async function createIngredient(
   return { error: null };
 }
 
+export async function updateIngredient(
+  ingredientId: string,
+  _prevState: IngredientActionState,
+  formData: FormData,
+): Promise<IngredientActionState> {
+  const ingredient = await prisma.ingredient.findUniqueOrThrow({
+    where: { id: ingredientId },
+  });
+  await assertHouseholdAccess(ingredient.householdId);
+
+  const parsed = parseIngredientForm(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
+  }
+
+  await prisma.ingredient.update({
+    where: { id: ingredientId },
+    data: parsed.data,
+  });
+
+  revalidatePath("/ingredients");
+  return { error: null };
+}
+
 export async function deleteIngredient(ingredientId: string): Promise<void> {
   const ingredient = await prisma.ingredient.findUniqueOrThrow({
     where: { id: ingredientId },

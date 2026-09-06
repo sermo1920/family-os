@@ -3,9 +3,14 @@
 import { useActionState, useEffect, useRef } from "react";
 import {
   createIngredient,
+  updateIngredient,
   type IngredientActionState,
 } from "@/features/ingredients/actions";
-import { categoryLabels, unitLabels } from "@/features/ingredients/schema";
+import {
+  categoryLabels,
+  unitLabels,
+  type IngredientInput,
+} from "@/features/ingredients/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,14 +24,22 @@ import {
 
 const initialState: IngredientActionState = { error: null };
 
+export interface IngredientFormValues extends IngredientInput {
+  id: string;
+}
+
 export function IngredientForm({
   householdId,
+  ingredient,
   onSuccess,
 }: {
   householdId: string;
+  ingredient?: IngredientFormValues;
   onSuccess?: () => void;
 }) {
-  const action = createIngredient.bind(null, householdId);
+  const action = ingredient
+    ? updateIngredient.bind(null, ingredient.id)
+    : createIngredient.bind(null, householdId);
   const [state, formAction, pending] = useActionState(action, initialState);
 
   const wasPending = useRef(false);
@@ -41,12 +54,16 @@ export function IngredientForm({
     <form action={formAction} className="grid gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-2 sm:col-span-2">
         <Label htmlFor="name">Nom</Label>
-        <Input id="name" name="name" required />
+        <Input id="name" name="name" defaultValue={ingredient?.name} required />
       </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="category">Catégorie</Label>
-        <Select name="category" defaultValue="OTHER" items={categoryLabels}>
+        <Select
+          name="category"
+          defaultValue={ingredient?.category ?? "OTHER"}
+          items={categoryLabels}
+        >
           <SelectTrigger id="category">
             <SelectValue />
           </SelectTrigger>
@@ -62,7 +79,11 @@ export function IngredientForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="baseUnit">Unité</Label>
-        <Select name="baseUnit" defaultValue="GRAM" items={unitLabels}>
+        <Select
+          name="baseUnit"
+          defaultValue={ingredient?.baseUnit ?? "GRAM"}
+          items={unitLabels}
+        >
           <SelectTrigger id="baseUnit">
             <SelectValue />
           </SelectTrigger>
@@ -84,6 +105,7 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
+          defaultValue={ingredient?.caloriesPer100}
           required
         />
       </div>
@@ -96,6 +118,7 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
+          defaultValue={ingredient?.proteinPer100}
           required
         />
       </div>
@@ -108,6 +131,7 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
+          defaultValue={ingredient?.carbsPer100}
           required
         />
       </div>
@@ -120,6 +144,7 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
+          defaultValue={ingredient?.fatPer100}
           required
         />
       </div>
@@ -129,7 +154,11 @@ export function IngredientForm({
       )}
 
       <Button type="submit" disabled={pending} className="sm:col-span-2">
-        {pending ? "Ajout..." : "Ajouter l'ingrédient"}
+        {pending
+          ? "Enregistrement..."
+          : ingredient
+            ? "Enregistrer"
+            : "Ajouter l'ingrédient"}
       </Button>
     </form>
   );

@@ -4,8 +4,9 @@ import { listIngredients } from "@/features/ingredients/queries";
 import { listRecipes } from "@/features/recipes/queries";
 import { categoryLabels, unitLabels } from "@/features/ingredients/schema";
 import { AddIngredientDialog } from "@/features/ingredients/components/add-ingredient-dialog";
+import { EditIngredientDialog } from "@/features/ingredients/components/edit-ingredient-dialog";
 import { DeleteIngredientButton } from "@/features/ingredients/components/delete-ingredient-button";
-import { Button } from "@/components/ui/button";
+import { NewRecipeDialog } from "@/features/recipes/components/new-recipe-dialog";
 
 export default async function IngredientsPage() {
   const member = await getOrCreateCurrentMember();
@@ -54,7 +55,13 @@ export default async function IngredientsPage() {
                           {unitLabels[ingredient.baseUnit]})
                         </p>
                       </div>
-                      <DeleteIngredientButton ingredientId={ingredient.id} />
+                      <div className="flex items-center gap-1">
+                        <EditIngredientDialog
+                          householdId={member.householdId}
+                          ingredient={ingredient}
+                        />
+                        <DeleteIngredientButton ingredientId={ingredient.id} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -71,9 +78,13 @@ export default async function IngredientsPage() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium">Recettes</h2>
-            <Button render={<Link href="/recipes/new" />}>
-              Nouvelle recette
-            </Button>
+            <NewRecipeDialog
+              householdId={member.householdId}
+              ingredientOptions={ingredients.map((i) => ({
+                id: i.id,
+                name: i.name,
+              }))}
+            />
           </div>
 
           <ul className="flex flex-col gap-2">
