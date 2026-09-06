@@ -46,6 +46,11 @@ model Member {
   weightKg      Float?
   activityLevel ActivityLevel?
 
+  // Lien iCal public/privé (Google "adresse secrète", Outlook "lien ICS
+  // publié", etc.) — lu en lecture seule au moment d'afficher le planning,
+  // jamais stocké en cache côté serveur (voir features/household/calendar.ts).
+  icsCalendarUrl String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

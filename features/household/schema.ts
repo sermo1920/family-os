@@ -16,6 +16,10 @@ export type AddMemberInput = z.infer<typeof addMemberSchema>;
 
 // Même forme que addMemberSchema, sans "role" : on ne change jamais le rôle
 // (OWNER/ADULT/CHILD) d'un membre existant via ce formulaire de profil.
-export const updateProfileSchema = addMemberSchema.omit({ role: true });
+// icsCalendarUrl s'ajoute ici (pas à la création) : on ne configure un
+// calendrier qu'une fois le membre déjà créé, depuis son profil.
+export const updateProfileSchema = addMemberSchema.omit({ role: true }).extend({
+  icsCalendarUrl: z.string().url("Lien invalide").optional(),
+});
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

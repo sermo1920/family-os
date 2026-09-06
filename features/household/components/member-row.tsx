@@ -43,6 +43,7 @@ export function MemberRow({
     heightCm: number | null;
     weightKg: number | null;
     activityLevel: ActivityLevel | null;
+    icsCalendarUrl: string | null;
   };
   canInvite: boolean;
   existingInviteLink: string | null;
@@ -85,6 +86,7 @@ export function MemberRow({
           heightCm={member.heightCm}
           weightKg={member.weightKg}
           activityLevel={member.activityLevel}
+          icsCalendarUrl={member.icsCalendarUrl}
         />
         <Button
           type="button"

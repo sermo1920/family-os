@@ -78,6 +78,21 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
     d'ingrédients, ce n'est pas la même mémoire. Implémenté avec un simple `<input list=...>` /
     `<datalist>` HTML natif (autocomplete du navigateur) plutôt qu'un composant de recherche
     dédié : le nombre d'articles connus par foyer reste petit, pas besoin de plus.
+- Agenda externe (`features/household/calendar.ts`, dépendance `node-ical`) : chaque `Member`
+  peut avoir un `icsCalendarUrl` (configuré dans son profil, `/household`) pointant vers un lien
+  iCal en lecture seule (adresse secrète Google Calendar, lien ICS publié Outlook/Apple...).
+  `fetchMembersCalendars` récupère les calendriers de tous les membres d'un foyer en parallèle
+  pour une plage de dates, et isole les erreurs par membre (URL invalide, hôte injoignable,
+  timeout 8s) : un calendrier cassé n'empêche jamais l'affichage des autres. Affiché sur
+  `/planner` (`WeeklyAgenda`) à côté du planning repas de la semaine — jamais mis en cache côté
+  serveur, re-fetché à chaque chargement de la page.
+  - Aucun fuseau horaire par foyer dans le modèle de données (même simplification volontaire que
+    le reste de l'app) : `calendarDateKey`/`formatEventTime` supposent `Europe/Zurich` en dur
+    pour grouper les événements par jour et afficher l'heure correctement plutôt qu'en UTC brut.
+    À généraliser si l'app sert un jour des foyers hors Suisse romande.
+  - Les événements récurrents (RRULE) sont développés dans la plage demandée via
+    `ical.expandRecurringEvent` — ne pas itérer `rrule` à la main, `node-ical` gère déjà les
+    exceptions (EXDATE) et les surcharges (RECURRENCE-ID).
 
 ## Playwright (e2e)
 

@@ -73,6 +73,7 @@ export async function updateMemberProfile(
     heightCm: emptyToUndefined(formData.get("heightCm")),
     weightKg: emptyToUndefined(formData.get("weightKg")),
     activityLevel: emptyToUndefined(formData.get("activityLevel")),
+    icsCalendarUrl: emptyToUndefined(formData.get("icsCalendarUrl")),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
@@ -89,6 +90,7 @@ export async function updateMemberProfile(
       heightCm: parsed.data.heightCm ?? null,
       weightKg: parsed.data.weightKg ?? null,
       activityLevel: parsed.data.activityLevel ?? null,
+      icsCalendarUrl: parsed.data.icsCalendarUrl ?? null,
     },
   });
 

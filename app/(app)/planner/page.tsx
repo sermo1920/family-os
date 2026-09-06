@@ -4,7 +4,9 @@ import { getHouseholdWithMembers } from "@/features/household/queries";
 import { listRecipes } from "@/features/recipes/queries";
 import { getWeekPlan } from "@/features/meal-plan/queries";
 import { getWeekStart, addDays, toDateKey } from "@/features/meal-plan/dates";
+import { fetchMembersCalendars } from "@/features/household/calendar";
 import { WeekGrid } from "@/features/meal-plan/components/week-grid";
+import { WeeklyAgenda } from "@/features/meal-plan/components/weekly-agenda";
 import { Button } from "@/components/ui/button";
 
 const weekLabelFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -28,6 +30,11 @@ export default async function PlannerPage({
     listRecipes(member.householdId),
     getWeekPlan(member.householdId, weekStart),
   ]);
+  const calendars = await fetchMembersCalendars(
+    household.members,
+    weekStart,
+    addDays(weekStart, 7),
+  );
 
   const previousWeek = toDateKey(addDays(weekStart, -7));
   const nextWeek = toDateKey(addDays(weekStart, 7));
@@ -55,6 +62,15 @@ export default async function PlannerPage({
           </Button>
         </div>
       </div>
+
+      <WeeklyAgenda
+        days={days}
+        members={household.members.map((m) => ({
+          id: m.id,
+          displayName: m.displayName,
+        }))}
+        calendars={calendars}
+      />
 
       {recipes.length === 0 ? (
         <p className="text-muted-foreground text-sm">

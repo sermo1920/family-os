@@ -42,6 +42,7 @@ export function ProfileForm({
   heightCm,
   weightKg,
   activityLevel,
+  icsCalendarUrl,
 }: {
   memberId: string;
   displayName: string;
@@ -50,6 +51,7 @@ export function ProfileForm({
   heightCm: number | null;
   weightKg: number | null;
   activityLevel: ActivityLevel | null;
+  icsCalendarUrl: string | null;
 }) {
   const action = updateMemberProfile.bind(null, memberId);
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -135,6 +137,22 @@ export function ProfileForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <Label htmlFor="icsCalendarUrl">Lien calendrier (ICS)</Label>
+        <Input
+          id="icsCalendarUrl"
+          name="icsCalendarUrl"
+          type="url"
+          placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+          defaultValue={icsCalendarUrl ?? undefined}
+        />
+        <p className="text-muted-foreground text-xs">
+          Colle ici le lien iCal (adresse secrète Google Calendar, lien ICS
+          publié Outlook/Apple...) pour voir ses événements dans le planning de
+          la semaine.
+        </p>
       </div>
 
       {state.error && (
