@@ -47,6 +47,7 @@ export default async function NutritionGoalsPage({
             weightKg={member.weightKg}
             activityLevel={member.activityLevel}
             icsCalendarUrl={member.icsCalendarUrl}
+            color={member.color}
           />
         </CardContent>
       </Card>

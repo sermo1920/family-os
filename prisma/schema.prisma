@@ -50,6 +50,9 @@ model Member {
   // publié", etc.) — lu en lecture seule au moment d'afficher le planning,
   // jamais stocké en cache côté serveur (voir features/household/calendar.ts).
   icsCalendarUrl String?
+  // Couleur personnelle affichée dans l'agenda de la semaine (pastille) à la
+  // place d'écrire le nom du membre à côté de chaque événement.
+  color          MemberColor?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,7 +233,6 @@ enum MealSlot {
   BREAKFAST
   LUNCH
   DINNER
-  SNACK
 }
 
 enum Unit {
@@ -283,4 +285,16 @@ enum ActivityLevel {
   MODERATE
   ACTIVE
   VERY_ACTIVE
+}
+
+enum MemberColor {
+  RED
+  ORANGE
+  AMBER
+  GREEN
+  TEAL
+  BLUE
+  INDIGO
+  PURPLE
+  PINK
 }

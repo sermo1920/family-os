@@ -1,96 +1,97 @@
-import {
-  calendarDateKey,
-  formatEventTime,
-  type MemberCalendarResult,
-} from "@/features/household/calendar";
-
-const dayLabelFormatter = new Intl.DateTimeFormat("fr-FR", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-});
+import { calendarDateKey } from "@/features/household/calendar";
+import { colorDotClass } from "@/features/household/colors";
+import { toDateKey } from "@/features/meal-plan/dates";
+import type { MemberCalendarResult } from "@/features/household/calendar";
+import type { MemberColor } from "@/lib/generated/prisma/client";
 
 interface DayEvent {
-  memberName: string;
+  id: string;
   title: string;
-  start: Date;
-  isFullDay: boolean;
+  colorClass: string;
 }
 
-export function WeeklyAgenda({
+/**
+ * Ligne "Rendez-vous" (pas de wrapper <div grid> à elle : rendue à l'intérieur
+ * de la grille de WeekGrid via sa prop `agendaRow`, pour que ses colonnes de
+ * jour soient pixel-alignées avec celles du planning repas juste en dessous).
+ */
+export function WeeklyAgendaRow({
   days,
   members,
   calendars,
 }: {
   days: Date[];
-  members: { id: string; displayName: string }[];
+  members: { id: string; displayName: string; color: MemberColor | null }[];
   calendars: MemberCalendarResult[];
 }) {
-  if (calendars.length === 0) return null;
-
-  const memberNameById = new Map(members.map((m) => [m.id, m.displayName]));
-  const failedMembers = calendars
-    .filter((calendar) => calendar.error)
-    .map((calendar) => memberNameById.get(calendar.memberId) ?? "?");
+  const memberById = new Map(members.map((m) => [m.id, m]));
 
   const eventsByDay = new Map<string, DayEvent[]>();
   for (const calendar of calendars) {
-    const memberName = memberNameById.get(calendar.memberId) ?? "?";
+    const colorClass = colorDotClass(
+      memberById.get(calendar.memberId)?.color ?? null,
+    );
     for (const event of calendar.events) {
       const key = calendarDateKey(event.start);
       const list = eventsByDay.get(key) ?? [];
-      list.push({
-        memberName,
-        title: event.title,
-        start: event.start,
-        isFullDay: event.isFullDay,
-      });
+      list.push({ id: event.id, title: event.title, colorClass });
       eventsByDay.set(key, list);
     }
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-lg font-medium">Agenda de la semaine</h2>
-      {failedMembers.length > 0 && (
-        <p className="text-destructive text-xs">
-          Calendrier indisponible pour {failedMembers.join(", ")}.
-        </p>
-      )}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
-        {days.map((day) => {
-          const key = calendarDateKey(day);
-          const events = (eventsByDay.get(key) ?? []).sort(
-            (a, b) => a.start.getTime() - b.start.getTime(),
-          );
-          return (
-            <div
-              key={key}
-              className="flex flex-col gap-1 rounded-md border p-2"
-            >
-              <p className="text-muted-foreground text-xs font-medium capitalize">
-                {dayLabelFormatter.format(day)}
-              </p>
-              {events.length === 0 ? (
-                <p className="text-muted-foreground text-xs">—</p>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {events.map((event, index) => (
-                    <li key={index} className="text-xs">
-                      <span className="font-medium">
-                        {event.isFullDay
-                          ? "Jour entier"
-                          : formatEventTime(event.start)}
-                      </span>{" "}
-                      · {event.memberName} — {event.title}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
+    <>
+      <div className="text-muted-foreground flex items-center text-sm">
+        Rendez-vous
       </div>
-    </div>
+      {days.map((day) => {
+        const events = eventsByDay.get(calendarDateKey(day)) ?? [];
+        return (
+          <div
+            key={toDateKey(day)}
+            className="flex flex-col gap-1 rounded-md border p-2"
+          >
+            {events.length === 0 ? (
+              <span className="text-muted-foreground text-xs">—</span>
+            ) : (
+              events.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <span
+                    className={`size-2 shrink-0 rounded-full ${event.colorClass}`}
+                  />
+                  <span className="truncate">{event.title}</span>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** Message d'erreur (calendriers en échec), affiché au-dessus de la grille —
+ * séparé de la ligne elle-même puisqu'il n'a pas sa place dans une colonne. */
+export function CalendarErrors({
+  members,
+  calendars,
+}: {
+  members: { id: string; displayName: string }[];
+  calendars: MemberCalendarResult[];
+}) {
+  const memberNameById = new Map(members.map((m) => [m.id, m.displayName]));
+  const failedNames = calendars
+    .filter((calendar) => calendar.error)
+    .map((calendar) => memberNameById.get(calendar.memberId) ?? "?");
+
+  if (failedNames.length === 0) return null;
+
+  return (
+    <p className="text-destructive text-xs">
+      Calendrier indisponible pour {failedNames.join(", ")}.
+    </p>
   );
 }

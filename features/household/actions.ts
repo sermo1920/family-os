@@ -74,6 +74,7 @@ export async function updateMemberProfile(
     weightKg: emptyToUndefined(formData.get("weightKg")),
     activityLevel: emptyToUndefined(formData.get("activityLevel")),
     icsCalendarUrl: emptyToUndefined(formData.get("icsCalendarUrl")),
+    color: emptyToUndefined(formData.get("color")),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
@@ -91,11 +92,13 @@ export async function updateMemberProfile(
       weightKg: parsed.data.weightKg ?? null,
       activityLevel: parsed.data.activityLevel ?? null,
       icsCalendarUrl: parsed.data.icsCalendarUrl ?? null,
+      color: parsed.data.color ?? null,
     },
   });
 
   revalidatePath("/household");
   revalidatePath(`/nutrition-goals/${memberId}`);
+  revalidatePath("/planner");
   return { error: null };
 }
 

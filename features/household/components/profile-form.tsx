@@ -15,7 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ActivityLevel, Sex } from "@/lib/generated/prisma/client";
+import { colorLabels, colorDotClass } from "@/features/household/colors";
+import type {
+  ActivityLevel,
+  MemberColor,
+  Sex,
+} from "@/lib/generated/prisma/client";
 
 const initialState: AddMemberActionState = { error: null };
 
@@ -43,6 +48,7 @@ export function ProfileForm({
   weightKg,
   activityLevel,
   icsCalendarUrl,
+  color,
 }: {
   memberId: string;
   displayName: string;
@@ -52,6 +58,7 @@ export function ProfileForm({
   weightKg: number | null;
   activityLevel: ActivityLevel | null;
   icsCalendarUrl: string | null;
+  color: MemberColor | null;
 }) {
   const action = updateMemberProfile.bind(null, memberId);
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -137,6 +144,33 @@ export function ProfileForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <Label htmlFor="color">Couleur</Label>
+        <Select
+          name="color"
+          defaultValue={color ?? undefined}
+          items={colorLabels}
+        >
+          <SelectTrigger id="color">
+            <SelectValue placeholder="Non définie" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(colorLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                <span
+                  className={`size-2.5 rounded-full ${colorDotClass(value as MemberColor)}`}
+                />
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-muted-foreground text-xs">
+          Utilisée pour repérer ses rendez-vous dans l&apos;agenda de la
+          semaine, sans avoir à écrire son nom à côté de chacun.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2 sm:col-span-2">

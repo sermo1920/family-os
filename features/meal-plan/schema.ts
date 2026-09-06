@@ -1,12 +1,14 @@
 import { z } from "zod";
 
-export const mealSlots = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as const;
+export const mealSlots = ["BREAKFAST", "LUNCH", "DINNER"] as const;
 
+// Terminologie romande (Suisse) : "déjeuner" = petit-déjeuner du matin,
+// "dîner" = repas de midi, "souper" = repas du soir — pas les noms
+// utilisés en France ("déjeuner" = midi, "dîner" = soir).
 export const mealSlotLabels: Record<(typeof mealSlots)[number], string> = {
-  BREAKFAST: "Petit-déjeuner",
-  LUNCH: "Déjeuner",
-  DINNER: "Dîner",
-  SNACK: "Collation",
+  BREAKFAST: "Déjeuner",
+  LUNCH: "Dîner",
+  DINNER: "Souper",
 };
 
 export const assignMealSchema = z.object({

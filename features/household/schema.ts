@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { memberColorValues } from "@/features/household/colors";
 
 export const addMemberSchema = z.object({
   displayName: z.string().min(1, "Le prénom est requis").max(50),
@@ -20,6 +21,7 @@ export type AddMemberInput = z.infer<typeof addMemberSchema>;
 // calendrier qu'une fois le membre déjà créé, depuis son profil.
 export const updateProfileSchema = addMemberSchema.omit({ role: true }).extend({
   icsCalendarUrl: z.string().url("Lien invalide").optional(),
+  color: z.enum(memberColorValues).optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

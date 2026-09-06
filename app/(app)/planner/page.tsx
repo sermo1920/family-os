@@ -6,7 +6,10 @@ import { getWeekPlan } from "@/features/meal-plan/queries";
 import { getWeekStart, addDays, toDateKey } from "@/features/meal-plan/dates";
 import { fetchMembersCalendars } from "@/features/household/calendar";
 import { WeekGrid } from "@/features/meal-plan/components/week-grid";
-import { WeeklyAgenda } from "@/features/meal-plan/components/weekly-agenda";
+import {
+  WeeklyAgendaRow,
+  CalendarErrors,
+} from "@/features/meal-plan/components/weekly-agenda";
 import { Button } from "@/components/ui/button";
 
 const weekLabelFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -63,14 +66,7 @@ export default async function PlannerPage({
         </div>
       </div>
 
-      <WeeklyAgenda
-        days={days}
-        members={household.members.map((m) => ({
-          id: m.id,
-          displayName: m.displayName,
-        }))}
-        calendars={calendars}
-      />
+      <CalendarErrors members={household.members} calendars={calendars} />
 
       {recipes.length === 0 ? (
         <p className="text-muted-foreground text-sm">
@@ -86,6 +82,13 @@ export default async function PlannerPage({
             id: m.id,
             displayName: m.displayName,
           }))}
+          agendaRow={
+            <WeeklyAgendaRow
+              days={days}
+              members={household.members}
+              calendars={calendars}
+            />
+          }
         />
       )}
     </div>

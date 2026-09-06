@@ -21,12 +21,18 @@ export function WeekGrid({
   initialMeals,
   recipeOptions,
   memberOptions,
+  agendaRow,
 }: {
   householdId: string;
   days: Date[];
   initialMeals: PlannedMealWithRelations[];
   recipeOptions: { id: string; name: string }[];
   memberOptions: { id: string; displayName: string }[];
+  /** Ligne supplémentaire (agenda externe) insérée sous les en-têtes de
+   * jour, dans la même grille — voir features/meal-plan/components/weekly-agenda.tsx.
+   * Rendue ici (pas dans son propre <div grid>) pour que ses colonnes
+   * s'alignent pixel pour pixel avec celles du planning repas. */
+  agendaRow?: React.ReactNode;
 }) {
   const [, startTransition] = useTransition();
   const [meals, updateOptimisticMeals] = useOptimistic(
@@ -42,13 +48,15 @@ export function WeekGrid({
   }
 
   return (
-    <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-2 overflow-x-auto">
+    <div className="grid grid-cols-[8rem_repeat(7,1fr)] gap-2 overflow-x-auto">
       <div />
       {days.map((day) => (
         <div key={toDateKey(day)} className="text-center text-sm font-medium">
           {dayFormatter.format(day)}
         </div>
       ))}
+
+      {agendaRow}
 
       {mealSlots.map((slot) => (
         <Fragment key={slot}>

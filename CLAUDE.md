@@ -53,6 +53,11 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
   dates à la main ailleurs. `useOptimistic` n'est utilisé que pour le retrait d'un repas (clic
   unique, gain UX net) ; l'assignation garde `useActionState` classique (formulaire multi-champs,
   le `pending` suffit).
+  - `MealSlot` (enum Prisma) n'a que 3 valeurs (`BREAKFAST`/`LUNCH`/`DINNER`, pas de collation) et
+    `mealSlotLabels` (`features/meal-plan/schema.ts`) les affiche en français **romand** —
+    "Déjeuner"/"Dîner"/"Souper" (matin/midi/soir), pas la terminologie de France où "déjeuner"
+    désigne le repas de midi. Ne pas "corriger" ces libellés vers la norme France, c'est un choix
+    délibéré du foyer utilisateur (Suisse romande, cf. `Europe/Zurich` pour l'agenda externe).
 - Liste de courses (`ShoppingList`/`ShoppingListItem`) : pas de champ `status` (DRAFT/ACTIVE/
   ARCHIVED) contrairement au plan initial — simplification volontaire, une liste existe ou est
   supprimée. `ShoppingListItem.name` est toujours copié à la création (agrégation ou saisie
@@ -84,15 +89,28 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
   `fetchMembersCalendars` récupère les calendriers de tous les membres d'un foyer en parallèle
   pour une plage de dates, et isole les erreurs par membre (URL invalide, hôte injoignable,
   timeout 8s) : un calendrier cassé n'empêche jamais l'affichage des autres. Affiché sur
-  `/planner` (`WeeklyAgenda`) à côté du planning repas de la semaine — jamais mis en cache côté
-  serveur, re-fetché à chaque chargement de la page.
+  `/planner` (`WeeklyAgendaRow`/`CalendarErrors`) à côté du planning repas de la semaine — jamais
+  mis en cache côté serveur, re-fetché à chaque chargement de la page.
   - Aucun fuseau horaire par foyer dans le modèle de données (même simplification volontaire que
-    le reste de l'app) : `calendarDateKey`/`formatEventTime` supposent `Europe/Zurich` en dur
-    pour grouper les événements par jour et afficher l'heure correctement plutôt qu'en UTC brut.
-    À généraliser si l'app sert un jour des foyers hors Suisse romande.
+    le reste de l'app) : `calendarDateKey` suppose `Europe/Zurich` en dur pour grouper les
+    événements par jour correctement plutôt qu'en UTC brut. À généraliser si l'app sert un jour
+    des foyers hors Suisse romande.
   - Les événements récurrents (RRULE) sont développés dans la plage demandée via
     `ical.expandRecurringEvent` — ne pas itérer `rrule` à la main, `node-ical` gère déjà les
     exceptions (EXDATE) et les surcharges (RECURRENCE-ID).
+  - `Member.color` (enum `MemberColor`, `features/household/colors.ts`) : chaque membre choisit
+    une couleur dans son profil, affichée en pastille à côté de chaque événement de l'agenda à la
+    place d'écrire son nom — volontairement aucune heure ni nom affichés à côté d'un événement,
+    seulement son titre + la pastille de couleur (demande explicite : l'agenda externe est un
+    coup d'œil rapide, pas un second planning détaillé).
+  - Alignement des colonnes de jour entre l'agenda (`WeeklyAgendaRow`) et le planning repas
+    (`WeekGrid`) : ce ne sont **pas** deux grilles CSS séparées avec le même `grid-template-columns`
+    — deux grilles indépendantes avec un contenu de largeur différente calculent des largeurs de
+    colonne différentes même avec un template identique (une colonne `1fr` ne descend jamais sous
+    la largeur de son contenu le plus large). `WeeklyAgendaRow` ne rend donc que les cellules de sa
+    ligne (pas de `<div grid>` ni d'en-têtes à elle) et s'insère via la prop `agendaRow` de
+    `WeekGrid`, à l'intérieur de la même grille que les lignes de repas — seule façon de garantir
+    un alignement pixel des jours plutôt qu'une simple coïncidence visuelle.
 
 ## Playwright (e2e)
 

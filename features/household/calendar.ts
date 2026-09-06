@@ -15,14 +15,6 @@ export function calendarDateKey(date: Date): string {
   }).format(date);
 }
 
-export function formatEventTime(date: Date): string {
-  return new Intl.DateTimeFormat("fr-CH", {
-    timeZone: HOUSEHOLD_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export interface CalendarEvent {
   id: string;
   title: string;

@@ -19,7 +19,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { ActivityLevel, Sex } from "@/lib/generated/prisma/client";
+import { colorDotClass } from "@/features/household/colors";
+import type {
+  ActivityLevel,
+  MemberColor,
+  Sex,
+} from "@/lib/generated/prisma/client";
 
 const roleLabels: Record<string, string> = {
   OWNER: "Propriétaire",
@@ -44,6 +49,7 @@ export function MemberRow({
     weightKg: number | null;
     activityLevel: ActivityLevel | null;
     icsCalendarUrl: string | null;
+    color: MemberColor | null;
   };
   canInvite: boolean;
   existingInviteLink: string | null;
@@ -87,6 +93,7 @@ export function MemberRow({
           weightKg={member.weightKg}
           activityLevel={member.activityLevel}
           icsCalendarUrl={member.icsCalendarUrl}
+          color={member.color}
         />
         <Button
           type="button"
@@ -104,7 +111,12 @@ export function MemberRow({
   return (
     <li className="flex items-center justify-between rounded-md border px-4 py-3">
       <div className="flex flex-col">
-        <span>{member.displayName}</span>
+        <span className="flex items-center gap-2">
+          <span
+            className={`size-2.5 shrink-0 rounded-full ${colorDotClass(member.color)}`}
+          />
+          {member.displayName}
+        </span>
         {member.email && (
           <span className="text-muted-foreground text-xs">{member.email}</span>
         )}
