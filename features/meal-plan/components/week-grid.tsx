@@ -48,41 +48,46 @@ export function WeekGrid({
   }
 
   return (
-    <div className="grid grid-cols-[8rem_repeat(7,1fr)] gap-2 overflow-x-auto">
-      <div />
-      {days.map((day) => (
-        <div key={toDateKey(day)} className="text-center text-sm font-medium">
-          {dayFormatter.format(day)}
-        </div>
-      ))}
-
-      {agendaRow}
-
-      {mealSlots.map((slot) => (
-        <Fragment key={slot}>
-          <div className="text-muted-foreground flex items-center text-sm">
-            {mealSlotLabels[slot]}
+    // Horizontal scroll on phones: the 7 day columns keep a usable width
+    // instead of being squeezed (same single grid, so the agenda row stays
+    // aligned — see CLAUDE.md).
+    <div className="-mx-2 overflow-x-auto px-2 pb-2">
+      <div className="grid min-w-[64rem] grid-cols-[6rem_repeat(7,1fr)] gap-2">
+        <div />
+        {days.map((day) => (
+          <div key={toDateKey(day)} className="text-center text-sm font-medium">
+            {dayFormatter.format(day)}
           </div>
-          {days.map((day) => {
-            const dateKey = toDateKey(day);
-            const meal = meals.find(
-              (m) => toDateKey(m.date) === dateKey && m.mealSlot === slot,
-            );
-            return (
-              <MealCell
-                key={`${dateKey}-${slot}`}
-                meal={meal}
-                householdId={householdId}
-                dateKey={dateKey}
-                mealSlot={slot}
-                recipeOptions={recipeOptions}
-                memberOptions={memberOptions}
-                onRemove={handleRemove}
-              />
-            );
-          })}
-        </Fragment>
-      ))}
+        ))}
+
+        {agendaRow}
+
+        {mealSlots.map((slot) => (
+          <Fragment key={slot}>
+            <div className="text-muted-foreground flex items-center text-sm">
+              {mealSlotLabels[slot]}
+            </div>
+            {days.map((day) => {
+              const dateKey = toDateKey(day);
+              const meal = meals.find(
+                (m) => toDateKey(m.date) === dateKey && m.mealSlot === slot,
+              );
+              return (
+                <MealCell
+                  key={`${dateKey}-${slot}`}
+                  meal={meal}
+                  householdId={householdId}
+                  dateKey={dateKey}
+                  mealSlot={slot}
+                  recipeOptions={recipeOptions}
+                  memberOptions={memberOptions}
+                  onRemove={handleRemove}
+                />
+              );
+            })}
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }

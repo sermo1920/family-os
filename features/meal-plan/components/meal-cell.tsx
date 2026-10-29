@@ -1,10 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   assignMeal,
+  markPrepared,
+  validateMeal,
   type MealPlanActionState,
 } from "@/features/meal-plan/actions";
+import { mealSlotLabels } from "@/features/meal-plan/schema";
+import { servingsFromMultiplier } from "@/features/recipes/scaling";
 import type { getWeekPlan } from "@/features/meal-plan/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,23 +49,81 @@ export function MealCell({
     mealSlot as Parameters<typeof assignMeal>[2],
   );
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [actionPending, startAction] = useTransition();
+  const [confirmPrepared, setConfirmPrepared] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const recipeItems = Object.fromEntries(
     recipeOptions.map((r) => [r.id, r.name]),
   );
 
   if (!isEditing && meal) {
+    const isProposed = meal.status === "PROPOSED";
+    const servings = servingsFromMultiplier(
+      meal.recipe.servings,
+      meal.portionMultiplier,
+    );
     return (
-      <div className="flex min-h-24 flex-col gap-1 rounded-md border p-2 text-xs">
+      <div
+        className={`flex min-h-24 flex-col gap-1 rounded-md border p-2 text-xs ${
+          isProposed
+            ? "border-dashed border-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+            : ""
+        }`}
+      >
+        <div className="flex flex-wrap gap-1">
+          {isProposed && (
+            <span className="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+              Proposé
+            </span>
+          )}
+          {meal.leftoverOfId && (
+            <span
+              className="bg-muted rounded px-1 text-[10px] font-medium"
+              title={
+                meal.leftoverOf
+                  ? `Restes du ${mealSlotLabels[meal.leftoverOf.mealSlot].toLowerCase()} du ${meal.leftoverOf.date.toISOString().slice(0, 10)}`
+                  : undefined
+              }
+            >
+              Restes
+            </span>
+          )}
+          {meal.preparedAt && (
+            <span className="rounded bg-green-100 px-1 text-[10px] font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
+              Préparé
+            </span>
+          )}
+        </div>
         <p className="font-medium">{meal.recipe.name}</p>
-        {meal.portionMultiplier !== 1 && (
-          <p className="text-muted-foreground">×{meal.portionMultiplier}</p>
+        <p className="text-muted-foreground">
+          {servings} portion{servings > 1 ? "s" : ""}
+        </p>
+        {meal.notes && (
+          <p className="text-muted-foreground italic">{meal.notes}</p>
         )}
         {meal.attendances.length > 0 && (
           <p className="text-muted-foreground">
             {meal.attendances.map((a) => a.member.displayName).join(", ")}
           </p>
         )}
-        <div className="mt-auto flex gap-1">
+        {feedback && (
+          <p className="text-green-700 dark:text-green-400">{feedback}</p>
+        )}
+        <div className="mt-auto flex flex-wrap gap-1">
+          {isProposed && (
+            <Button
+              type="button"
+              size="xs"
+              disabled={actionPending}
+              onClick={() =>
+                startAction(async () => {
+                  await validateMeal(meal.id);
+                })
+              }
+            >
+              Valider
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -78,6 +140,28 @@ export function MealCell({
           >
             Retirer
           </Button>
+          {!meal.preparedAt && !isProposed && (
+            <Button
+              type="button"
+              variant={confirmPrepared ? "secondary" : "ghost"}
+              size="xs"
+              disabled={actionPending}
+              title="Décompte du stock les ingrédients utilisés"
+              onClick={() => {
+                if (!confirmPrepared) {
+                  setConfirmPrepared(true);
+                  return;
+                }
+                startAction(async () => {
+                  const result = await markPrepared(meal.id);
+                  setConfirmPrepared(false);
+                  setFeedback(result.error ?? result.message);
+                });
+              }}
+            >
+              {confirmPrepared ? "Confirmer : préparé ?" : "Préparé"}
+            </Button>
+          )}
         </div>
       </div>
     );

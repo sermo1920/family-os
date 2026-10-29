@@ -1,7 +1,11 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
-import { toggleItem, deleteItem } from "@/features/shopping-list/actions";
+import { useOptimistic, useState, useTransition } from "react";
+import {
+  toggleItem,
+  deleteItem,
+  updateItemQuantity,
+} from "@/features/shopping-list/actions";
 import { categoryLabels, shortUnitLabels } from "@/features/ingredients/schema";
 import type { getShoppingListWithItems } from "@/features/shopping-list/queries";
 
@@ -72,11 +76,17 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
                 <span
                   className={
                     item.isChecked
-                      ? "text-muted-foreground flex-1 line-through"
-                      : "flex-1"
+                      ? "text-muted-foreground flex min-w-0 flex-1 flex-wrap items-center gap-x-1 line-through"
+                      : "flex min-w-0 flex-1 flex-wrap items-center gap-x-1"
                   }
                 >
-                  {item.name} — {item.quantity} {shortUnitLabels[item.unit]}
+                  <span>{item.name} —</span>
+                  <QuantityEditor item={item} />
+                  {item.source === "MANUAL" && (
+                    <span className="text-muted-foreground text-[10px] no-underline">
+                      (manuel)
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -91,5 +101,68 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function QuantityEditor({ item }: { item: Item }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(item.quantity));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    const quantity = Number(value);
+    if (quantity === item.quantity) {
+      setEditing(false);
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateItemQuantity(item.id, quantity);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      setEditing(false);
+    });
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setValue(String(item.quantity));
+          setEditing(true);
+        }}
+        className="hover:bg-muted rounded px-1 underline decoration-dotted underline-offset-2"
+        aria-label={`Modifier la quantité de ${item.name}`}
+      >
+        {item.quantity} {shortUnitLabels[item.unit]}
+      </button>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        type="number"
+        min={0}
+        step="0.1"
+        autoFocus
+        value={value}
+        disabled={pending}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="border-input h-6 w-20 rounded border bg-transparent px-1 text-sm"
+        aria-label={`Quantité de ${item.name}`}
+      />
+      {shortUnitLabels[item.unit]}
+      {error && <span className="text-destructive text-xs">{error}</span>}
+    </span>
   );
 }

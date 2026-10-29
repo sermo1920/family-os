@@ -10,6 +10,7 @@ import {
   WeeklyAgendaRow,
   CalendarErrors,
 } from "@/features/meal-plan/components/weekly-agenda";
+import { ValidateWeekButton } from "@/features/meal-plan/components/validate-week-button";
 import { Button } from "@/components/ui/button";
 
 const weekLabelFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -39,16 +40,17 @@ export default async function PlannerPage({
     addDays(weekStart, 7),
   );
 
+  const proposedCount = meals.filter((m) => m.status === "PROPOSED").length;
   const previousWeek = toDateKey(addDays(weekStart, -7));
   const nextWeek = toDateKey(addDays(weekStart, 7));
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">
           Semaine du {weekLabelFormatter.format(weekStart)}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -66,11 +68,22 @@ export default async function PlannerPage({
         </div>
       </div>
 
+      <ValidateWeekButton
+        householdId={member.householdId}
+        weekStartKey={toDateKey(weekStart)}
+        proposedCount={proposedCount}
+      />
+
       <CalendarErrors members={household.members} calendars={calendars} />
 
       {recipes.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Crée d&apos;abord une recette pour pouvoir planifier des repas.
+          Crée d&apos;abord une recette pour pouvoir planifier des repas, ou
+          demande un menu à l&apos;
+          <Link href="/assistant" className="underline">
+            assistant
+          </Link>
+          .
         </p>
       ) : (
         <WeekGrid

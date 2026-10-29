@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { assertHouseholdAccess } from "@/lib/auth";
 import { recipeSchema } from "@/features/recipes/schema";
+import { updateRecipeFeedback } from "@/features/recipes/service";
 
 export type RecipeActionState = { error: string | null };
 
@@ -19,6 +20,9 @@ function parseRecipeForm(formData: FormData) {
     name: formData.get("name"),
     instructions: formData.get("instructions") || undefined,
     servings: formData.get("servings"),
+    prepTimeMinutes: formData.get("prepTimeMinutes") || undefined,
+    cookTimeMinutes: formData.get("cookTimeMinutes") || undefined,
+    tags: formData.getAll("tag").map(String),
     ingredients,
   });
 }
@@ -52,6 +56,9 @@ export async function createRecipe(
       name: parsed.data.name,
       instructions: parsed.data.instructions,
       servings: parsed.data.servings,
+      prepTimeMinutes: parsed.data.prepTimeMinutes ?? null,
+      cookTimeMinutes: parsed.data.cookTimeMinutes ?? null,
+      tags: parsed.data.tags,
       ingredients: {
         create: parsed.data.ingredients.map((ingredient) => ({
           ingredientId: ingredient.ingredientId,
@@ -94,6 +101,9 @@ export async function updateRecipe(
       name: parsed.data.name,
       instructions: parsed.data.instructions,
       servings: parsed.data.servings,
+      prepTimeMinutes: parsed.data.prepTimeMinutes ?? null,
+      cookTimeMinutes: parsed.data.cookTimeMinutes ?? null,
+      tags: parsed.data.tags,
       // On remplace entièrement la liste plutôt que de calculer un diff :
       // une recette a rarement plus de quelques ingrédients, la simplicité
       // l'emporte sur l'économie de quelques requêtes.
@@ -124,4 +134,47 @@ export async function deleteRecipe(recipeId: string): Promise<void> {
 
   await prisma.recipe.delete({ where: { id: recipeId } });
   revalidatePath("/ingredients");
+}
+
+/** "Valider" an AI-proposed recipe: it becomes one of the household's own. */
+export async function validateRecipe(recipeId: string): Promise<void> {
+  const recipe = await prisma.recipe.findUniqueOrThrow({
+    where: { id: recipeId },
+  });
+  await assertHouseholdAccess(recipe.householdId);
+
+  await updateRecipeFeedback(recipe.householdId, recipeId, { validate: true });
+  revalidatePath("/ingredients");
+}
+
+export type FeedbackActionState = { error: string | null; saved: boolean };
+
+export async function saveRecipeFeedback(
+  recipeId: string,
+  _prevState: FeedbackActionState,
+  formData: FormData,
+): Promise<FeedbackActionState> {
+  const recipe = await prisma.recipe.findUniqueOrThrow({
+    where: { id: recipeId },
+  });
+  await assertHouseholdAccess(recipe.householdId);
+
+  const rawRating = formData.get("rating");
+  const rating = rawRating ? Number(rawRating) : null;
+  if (
+    rating !== null &&
+    (!Number.isInteger(rating) || rating < 1 || rating > 5)
+  ) {
+    return { error: "La note doit être entre 1 et 5.", saved: false };
+  }
+  const notes = String(formData.get("notes") ?? "")
+    .trim()
+    .slice(0, 1000);
+
+  await updateRecipeFeedback(recipe.householdId, recipeId, {
+    rating,
+    notes: notes || null,
+  });
+  revalidatePath("/ingredients");
+  return { error: null, saved: true };
 }
