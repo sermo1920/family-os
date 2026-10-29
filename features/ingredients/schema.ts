@@ -65,6 +65,34 @@ export const categoryLabels: Record<IngredientInput["category"], string> = {
   CONDIMENTS: "Condiments",
 };
 
+// Emoji shown next to each category header in the shopping list (FamilyWall
+// style). Same keys as categoryLabels, so a new category fails typecheck here.
+export const categoryEmojis: Record<IngredientInput["category"], string> = {
+  OTHER: "🏷️",
+  FRUITS_VEGETABLES: "🥕",
+  MEAT: "🥩",
+  FISH: "🐟",
+  BAKERY: "🥖",
+  FRESH: "🧀",
+  FROZEN: "🧊",
+  BEVERAGES: "🥤",
+  STARCHES: "🍝",
+  SAVORY_GROCERY: "🧂",
+  CANNED: "🥫",
+  READY_MEALS: "🍲",
+  SAUCES_CONDIMENTS: "🫙",
+  BREAKFAST: "🥣",
+  COOKIES_CAKES: "🍪",
+  CONFECTIONERY: "🍬",
+  DESSERT: "🍮",
+  BEAUTY_HYGIENE: "🧴",
+  BABY: "🍼",
+  CLEANING: "🧽",
+  PETS: "🐾",
+  HOME_GARDEN: "🪴",
+  CONDIMENTS: "🌿",
+};
+
 export const unitLabels: Record<IngredientInput["baseUnit"], string> = {
   GRAM: "Grammes (g)",
   MILLILITER: "Millilitres (ml)",

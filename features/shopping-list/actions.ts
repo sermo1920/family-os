@@ -178,8 +178,14 @@ export async function addManualItem(
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
   }
 
+  const { quantity, unit, ...rest } = parsed.data;
   await prisma.shoppingListItem.create({
-    data: { shoppingListId, ...parsed.data },
+    // No quantity given: stored as "1 piece", which the list displays as the
+    // name alone (see formatItemQuantity) — no schema change needed.
+    data:
+      quantity === undefined
+        ? { shoppingListId, ...rest, quantity: 1, unit: "PIECE" }
+        : { shoppingListId, ...rest, quantity, unit },
   });
 
   revalidatePath(`/shopping-lists/${shoppingListId}`);

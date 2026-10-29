@@ -83,6 +83,14 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
     d'ingrédients, ce n'est pas la même mémoire. Implémenté avec un simple `<input list=...>` /
     `<datalist>` HTML natif (autocomplete du navigateur) plutôt qu'un composant de recherche
     dédié : le nombre d'articles connus par foyer reste petit, pas besoin de plus.
+  - Design de la liste (`/shopping-lists/[id]`) volontairement calqué sur FamilyWall, l'app
+    utilisée auparavant par le foyer : en-tête couleur corail (`--coral` dans `globals.css`),
+    barre d'ajout rapide en haut (le nom seul suffit, catégorie/quantité/unité derrière un
+    bouton "détails"), catégories repliables avec un emoji (`categoryEmojis`,
+    `features/ingredients/schema.ts`) et leur nombre d'articles, une carte par article avec un
+    rond à cocher. Un article ajouté sans quantité est stocké en "1 pce" (pas de migration pour
+    rendre `quantity` nullable) et `formatItemQuantity` (`format.ts`, testé) affiche alors le nom
+    seul.
 - Agenda externe (`features/household/calendar.ts`, dépendance `node-ical`) : chaque `Member`
   peut avoir un `icsCalendarUrl` (configuré dans son profil, `/household`) pointant vers un lien
   iCal en lecture seule (adresse secrète Google Calendar, lien ICS publié Outlook/Apple...).

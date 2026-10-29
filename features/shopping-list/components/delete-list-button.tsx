@@ -16,6 +16,7 @@ export function DeleteListButton({
   return (
     <ConfirmDeleteButton
       itemLabel={listName}
+      triggerClassName="border-coral-foreground/40 text-coral-foreground hover:border-coral-foreground hover:text-coral-foreground size-8"
       onConfirm={() => deleteShoppingList(shoppingListId)}
       onSuccess={() => router.push("/shopping-lists")}
     />

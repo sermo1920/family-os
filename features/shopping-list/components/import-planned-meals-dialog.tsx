@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { CalendarPlusIcon } from "lucide-react";
 import {
   importPlannedMeals,
   type ShoppingListActionState,
@@ -42,8 +43,18 @@ export function ImportPlannedMealsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button type="button" variant="outline" />}>
-        Ajouter les repas planifiés
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-coral-foreground/40 text-coral-foreground hover:bg-coral-foreground/15 hover:text-coral-foreground bg-transparent"
+          />
+        }
+      >
+        <CalendarPlusIcon />
+        <span className="hidden sm:inline">Repas planifiés</span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

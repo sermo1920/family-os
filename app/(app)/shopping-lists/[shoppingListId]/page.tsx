@@ -8,7 +8,7 @@ import { ShoppingListItems } from "@/features/shopping-list/components/shopping-
 import { AddManualItemForm } from "@/features/shopping-list/components/add-manual-item-form";
 import { ImportPlannedMealsDialog } from "@/features/shopping-list/components/import-planned-meals-dialog";
 import { DeleteListButton } from "@/features/shopping-list/components/delete-list-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShoppingCartIcon } from "lucide-react";
 
 const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -28,12 +28,15 @@ export default async function ShoppingListPage({
   const knownItems = await listKnownShoppingItems(shoppingList.householdId);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{shoppingList.name}</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+      <header className="bg-coral text-coral-foreground flex items-center gap-4 rounded-2xl px-5 py-5">
+        <ShoppingCartIcon className="size-7 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-semibold">
+            {shoppingList.name}
+          </h1>
           {shoppingList.startDate && shoppingList.endDate && (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-coral-foreground/80 text-sm">
               {dateFormatter.format(shoppingList.startDate)} –{" "}
               {dateFormatter.format(shoppingList.endDate)}
             </p>
@@ -46,21 +49,14 @@ export default async function ShoppingListPage({
             listName={shoppingList.name}
           />
         </div>
-      </div>
+      </header>
+
+      <AddManualItemForm
+        shoppingListId={shoppingList.id}
+        knownItems={knownItems}
+      />
 
       <ShoppingListItems items={shoppingList.items} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Ajouter un article</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AddManualItemForm
-            shoppingListId={shoppingList.id}
-            knownItems={knownItems}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }
