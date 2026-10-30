@@ -2,8 +2,16 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { CheckIcon, ChevronDownIcon, Trash2Icon } from "lucide-react";
-import { toggleItem, deleteItem } from "@/features/shopping-list/actions";
-import { categoryEmojis, categoryLabels } from "@/features/ingredients/schema";
+import {
+  toggleItem,
+  deleteItem,
+  updateItemQuantity,
+} from "@/features/shopping-list/actions";
+import {
+  categoryEmojis,
+  categoryLabels,
+  shortUnitLabels,
+} from "@/features/ingredients/schema";
 import { formatItemQuantity } from "@/features/shopping-list/format";
 import type { getShoppingListWithItems } from "@/features/shopping-list/queries";
 import { cn } from "@/lib/utils";
@@ -100,7 +108,6 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
             {!isCollapsed && (
               <ul className="flex flex-col gap-2">
                 {categoryItems.map((item) => {
-                  const quantity = formatItemQuantity(item);
                   return (
                     <li
                       key={item.id}
@@ -111,7 +118,7 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
                         role="checkbox"
                         aria-checked={item.isChecked}
                         onClick={() => handleToggle(item)}
-                        className="flex min-w-0 flex-1 items-center gap-5 px-4 py-4 text-left"
+                        className="flex min-w-0 items-center gap-5 py-4 pl-4 text-left"
                       >
                         <span
                           className={cn(
@@ -132,9 +139,17 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
                           )}
                         >
                           {item.name}
-                          {quantity && ` — ${quantity}`}
                         </span>
                       </button>
+                      <QuantityEditor item={item} />
+                      {/* Rest of the card also toggles, like tapping a
+                          FamilyWall row (the checkbox button stays the
+                          accessible control). */}
+                      <div
+                        aria-hidden
+                        onClick={() => handleToggle(item)}
+                        className="flex-1 cursor-pointer self-stretch"
+                      />
                       <button
                         type="button"
                         onClick={() => handleDelete(item)}
@@ -152,5 +167,79 @@ export function ShoppingListItems({ items: initialItems }: { items: Item[] }) {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Quantity shown after the name ("300 g"), editable in place. An item added
+ * without quantity shows nothing, like in FamilyWall, except a discreet
+ * "+ qté" on hover to set one.
+ */
+function QuantityEditor({ item }: { item: Item }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const label = formatItemQuantity(item);
+
+  function save() {
+    const quantity = Number(value);
+    if (value === "" || quantity === item.quantity) {
+      setEditing(false);
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateItemQuantity(item.id, quantity);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      setEditing(false);
+    });
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setValue(label ? String(item.quantity) : "");
+          setEditing(true);
+        }}
+        aria-label={`Modifier la quantité de ${item.name}`}
+        className={cn(
+          "hover:bg-muted shrink-0 rounded-md px-1.5 py-1 text-base whitespace-nowrap",
+          item.isChecked && "text-muted-foreground",
+          !label &&
+            "text-muted-foreground/70 text-sm transition-opacity focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100",
+        )}
+      >
+        {label ? `— ${label}` : "+ qté"}
+      </button>
+    );
+  }
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-sm">
+      <input
+        type="number"
+        min={0}
+        step="0.1"
+        autoFocus
+        value={value}
+        disabled={pending}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="border-input h-8 w-20 rounded-md border bg-transparent px-2"
+        aria-label={`Quantité de ${item.name}`}
+      />
+      {shortUnitLabels[item.unit]}
+      {error && <span className="text-destructive text-xs">{error}</span>}
+    </span>
   );
 }

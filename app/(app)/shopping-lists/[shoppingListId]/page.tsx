@@ -6,7 +6,8 @@ import {
 } from "@/features/shopping-list/queries";
 import { ShoppingListItems } from "@/features/shopping-list/components/shopping-list-items";
 import { AddManualItemForm } from "@/features/shopping-list/components/add-manual-item-form";
-import { ImportPlannedMealsDialog } from "@/features/shopping-list/components/import-planned-meals-dialog";
+import { SyncWithMenuDialog } from "@/features/shopping-list/components/sync-with-menu-dialog";
+import { addDays, getWeekStart, toDateKey } from "@/features/meal-plan/dates";
 import { DeleteListButton } from "@/features/shopping-list/components/delete-list-button";
 import { ShoppingCartIcon } from "lucide-react";
 
@@ -26,6 +27,10 @@ export default async function ShoppingListPage({
   await assertHouseholdAccess(shoppingList.householdId);
 
   const knownItems = await listKnownShoppingItems(shoppingList.householdId);
+  // Default sync period: the one already linked to the list, else this week.
+  const weekStart = getWeekStart(new Date());
+  const defaultStart = toDateKey(shoppingList.startDate ?? weekStart);
+  const defaultEnd = toDateKey(shoppingList.endDate ?? addDays(weekStart, 6));
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -37,13 +42,17 @@ export default async function ShoppingListPage({
           </h1>
           {shoppingList.startDate && shoppingList.endDate && (
             <p className="text-coral-foreground/80 text-sm">
-              {dateFormatter.format(shoppingList.startDate)} –{" "}
-              {dateFormatter.format(shoppingList.endDate)}
+              Menu synchronisé : {dateFormatter.format(shoppingList.startDate)}{" "}
+              – {dateFormatter.format(shoppingList.endDate)}
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <ImportPlannedMealsDialog shoppingListId={shoppingList.id} />
+          <SyncWithMenuDialog
+            shoppingListId={shoppingList.id}
+            defaultStart={defaultStart}
+            defaultEnd={defaultEnd}
+          />
           <DeleteListButton
             shoppingListId={shoppingList.id}
             listName={shoppingList.name}

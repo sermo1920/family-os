@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// Champ vide = valeur inconnue (null), jamais 0 : on ne veut pas afficher
+// une nutrition fausse pour un ingrédient créé sans ces informations.
+const optionalNutrient = z.preprocess(
+  (value) => (value === "" || value === null ? null : value),
+  z.coerce.number().nonnegative().nullable(),
+);
+
 export const ingredientSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),
   category: z.enum([
@@ -28,10 +35,10 @@ export const ingredientSchema = z.object({
     "CONDIMENTS",
   ]),
   baseUnit: z.enum(["GRAM", "MILLILITER", "PIECE", "PACK"]),
-  caloriesPer100: z.coerce.number().nonnegative(),
-  proteinPer100: z.coerce.number().nonnegative(),
-  carbsPer100: z.coerce.number().nonnegative(),
-  fatPer100: z.coerce.number().nonnegative(),
+  caloriesPer100: optionalNutrient,
+  proteinPer100: optionalNutrient,
+  carbsPer100: optionalNutrient,
+  fatPer100: optionalNutrient,
 });
 
 export type IngredientInput = z.infer<typeof ingredientSchema>;

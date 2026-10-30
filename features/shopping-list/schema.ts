@@ -5,9 +5,11 @@ export const createListSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),
 });
 
-export const importPlannedMealsSchema = z.object({
-  startDate: z.string().min(1, "Date de début requise"),
-  endDate: z.string().min(1, "Date de fin requise"),
+const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide");
+
+export const syncListSchema = z.object({
+  startDate: dateKey,
+  endDate: dateKey,
 });
 
 export const manualItemSchema = z.object({

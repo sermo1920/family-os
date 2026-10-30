@@ -3,5 +3,5 @@ import { getOrCreateCurrentMember } from "@/lib/auth";
 
 export default async function Home() {
   await getOrCreateCurrentMember();
-  redirect("/household");
+  redirect("/assistant");
 }

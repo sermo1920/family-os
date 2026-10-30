@@ -6,6 +6,7 @@ import {
   updateRecipe,
   type RecipeActionState,
 } from "@/features/recipes/actions";
+import { recipeTagLabels } from "@/features/recipes/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,9 @@ export interface RecipeFormValues {
   name: string;
   servings: number;
   instructions: string | null;
+  prepTimeMinutes: number | null;
+  cookTimeMinutes: number | null;
+  tags: string[];
   ingredients: { ingredientId: string; quantity: number }[];
 }
 
@@ -86,8 +90,48 @@ export function RecipeForm({
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="prepTimeMinutes">Préparation (min)</Label>
+          <Input
+            id="prepTimeMinutes"
+            name="prepTimeMinutes"
+            type="number"
+            min={0}
+            defaultValue={recipe?.prepTimeMinutes ?? undefined}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="cookTimeMinutes">Cuisson (min)</Label>
+          <Input
+            id="cookTimeMinutes"
+            name="cookTimeMinutes"
+            type="number"
+            min={0}
+            defaultValue={recipe?.cookTimeMinutes ?? undefined}
+          />
+        </div>
+      </div>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-medium">Catégories</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {Object.entries(recipeTagLabels).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-1.5 text-sm">
+              <input
+                type="checkbox"
+                name="tag"
+                value={value}
+                defaultChecked={recipe?.tags.includes(value)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <div className="flex flex-col gap-2">
-        <Label htmlFor="instructions">Instructions (optionnel)</Label>
+        <Label htmlFor="instructions">Étapes (une par ligne, optionnel)</Label>
         <textarea
           id="instructions"
           name="instructions"
