@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { assertHouseholdAccess } from "@/lib/auth";
-import { aggregateIngredientUsages } from "@/features/shopping-list/aggregate";
 import {
   createListSchema,
-  importPlannedMealsSchema,
   manualItemSchema,
+  syncListSchema,
 } from "@/features/shopping-list/schema";
+import { syncShoppingList } from "@/features/shopping-list/service";
+import { formatQuantity } from "@/features/recipes/service";
 
 export type ShoppingListActionState = { error: string | null };
 
@@ -35,98 +36,112 @@ export async function createShoppingList(
   redirect(`/shopping-lists/${shoppingList.id}`);
 }
 
+export interface SyncPreview {
+  applied: boolean;
+  range: { startKey: string; endKeyInclusive: string };
+  countedMeals: number;
+  proposedMealsSkipped: number;
+  create: string[];
+  update: string[];
+  remove: string[];
+  keptManualCount: number;
+  keptCheckedCount: number;
+  stockUsed: string[];
+  stockUnknown: string[];
+  possibleManualDuplicates: string[];
+}
+
+export type SyncActionState = {
+  error: string | null;
+  preview: SyncPreview | null;
+};
+
 /**
- * Ajoute à une liste existante les ingrédients des repas planifiés sur une
- * plage de dates : contrairement à l'ancien flux (une génération = une
- * liste), une liste peut recevoir plusieurs imports au fil du temps, en plus
- * des articles ajoutés à la main. Un ingrédient déjà présent dans la liste
- * (même `ingredientId`) voit sa quantité augmentée plutôt que dupliquée.
+ * Synchronise une liste avec le menu d'une période (voir
+ * features/shopping-list/sync.ts) : `intent=preview` montre les changements
+ * sans rien écrire, `intent=apply` les applique. Idempotent : relancer ne
+ * crée pas de doublon ; articles manuels et articles cochés préservés.
  */
-export async function importPlannedMeals(
+export async function syncShoppingListAction(
   shoppingListId: string,
-  _prevState: ShoppingListActionState,
+  _prevState: SyncActionState,
   formData: FormData,
-): Promise<ShoppingListActionState> {
+): Promise<SyncActionState> {
   const shoppingList = await prisma.shoppingList.findUniqueOrThrow({
     where: { id: shoppingListId },
   });
   await assertHouseholdAccess(shoppingList.householdId);
 
-  const parsed = importPlannedMealsSchema.safeParse({
+  const parsed = syncListSchema.safeParse({
     startDate: formData.get("startDate"),
     endDate: formData.get("endDate"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
+    return {
+      error: parsed.error.issues[0]?.message ?? "Champs invalides",
+      preview: null,
+    };
   }
 
-  const startDate = new Date(`${parsed.data.startDate}T00:00:00.000Z`);
-  // La borne de fin est inclusive côté formulaire (le dernier jour de la
-  // plage compte) donc on ajoute un jour pour la requête `lt` en base.
-  const endDateExclusive = new Date(
-    new Date(`${parsed.data.endDate}T00:00:00.000Z`).getTime() +
-      24 * 60 * 60 * 1000,
-  );
-  if (endDateExclusive <= startDate) {
-    return { error: "La date de fin doit être après la date de début." };
-  }
-
-  const meals = await prisma.plannedMeal.findMany({
-    where: {
-      householdId: shoppingList.householdId,
-      date: { gte: startDate, lt: endDateExclusive },
+  const result = await syncShoppingList(
+    shoppingList.householdId,
+    shoppingListId,
+    {
+      range: {
+        startKey: parsed.data.startDate,
+        endKeyInclusive: parsed.data.endDate,
+      },
+      includeProposed: formData.get("includeProposed") === "on",
+      apply: formData.get("intent") === "apply",
     },
-    include: {
-      recipe: { include: { ingredients: { include: { ingredient: true } } } },
-    },
-  });
-
-  const usages = meals.flatMap((meal) =>
-    meal.recipe.ingredients.map((ri) => ({
-      ingredientId: ri.ingredientId,
-      name: ri.ingredient.name,
-      category: ri.ingredient.category,
-      unit: ri.ingredient.baseUnit,
-      quantity: ri.quantity * meal.portionMultiplier,
-    })),
   );
-  const aggregated = aggregateIngredientUsages(usages);
+  if (!result.ok) return { error: result.error, preview: null };
 
-  if (aggregated.length === 0) {
-    return { error: "Aucun repas planifié sur cette période." };
+  const { plan } = result;
+  if (formData.get("intent") === "apply") {
+    revalidatePath(`/shopping-lists/${shoppingListId}`);
   }
+  return {
+    error: null,
+    preview: {
+      applied: formData.get("intent") === "apply",
+      range: result.range,
+      countedMeals: result.countedMeals,
+      proposedMealsSkipped: result.proposedMealsSkipped,
+      create: plan.create.map(
+        (c) => `${c.name} ${formatQuantity(c.quantity, c.unit)}`,
+      ),
+      update: plan.update.map(
+        (u) =>
+          `${u.name} : ${formatQuantity(u.from, u.unit)} → ${formatQuantity(u.to, u.unit)}`,
+      ),
+      remove: plan.remove.map(
+        (r) => `${r.name} ${formatQuantity(r.quantity, r.unit)}`,
+      ),
+      keptManualCount: plan.keptManualCount,
+      keptCheckedCount: plan.keptCheckedCount,
+      stockUsed: plan.stockUsed.map((st) => st.name),
+      stockUnknown: plan.stockUnknown.map((st) => st.name),
+      possibleManualDuplicates: plan.possibleManualDuplicates.map(
+        (d) => d.name,
+      ),
+    },
+  };
+}
 
-  const existingItems = await prisma.shoppingListItem.findMany({
-    where: { shoppingListId, ingredientId: { not: null } },
+export async function updateItemQuantity(
+  itemId: string,
+  quantity: number,
+): Promise<{ error: string | null }> {
+  const item = await getShoppingListIdForItem(itemId);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return { error: "La quantité doit être positive." };
+  }
+  await prisma.shoppingListItem.update({
+    where: { id: itemId },
+    data: { quantity: Math.round(quantity * 10) / 10 },
   });
-  const existingByIngredient = new Map(
-    existingItems.map((item) => [item.ingredientId, item]),
-  );
-
-  await prisma.$transaction(
-    aggregated.map((usage) => {
-      const roundedQuantity = Math.round(usage.quantity * 10) / 10;
-      const existing = existingByIngredient.get(usage.ingredientId);
-      if (existing) {
-        return prisma.shoppingListItem.update({
-          where: { id: existing.id },
-          data: { quantity: existing.quantity + roundedQuantity },
-        });
-      }
-      return prisma.shoppingListItem.create({
-        data: {
-          shoppingListId,
-          ingredientId: usage.ingredientId,
-          name: usage.name,
-          category: usage.category,
-          quantity: roundedQuantity,
-          unit: usage.unit,
-        },
-      });
-    }),
-  );
-
-  revalidatePath(`/shopping-lists/${shoppingListId}`);
+  revalidatePath(`/shopping-lists/${item.shoppingListId}`);
   return { error: null };
 }
 
@@ -178,8 +193,20 @@ export async function addManualItem(
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides" };
   }
 
+  const { quantity, unit, ...rest } = parsed.data;
   await prisma.shoppingListItem.create({
-    data: { shoppingListId, ...parsed.data },
+    // No quantity given: stored as "1 piece", which the list displays as the
+    // name alone (see formatItemQuantity) — no schema change needed.
+    data:
+      quantity === undefined
+        ? {
+            shoppingListId,
+            ...rest,
+            quantity: 1,
+            unit: "PIECE",
+            source: "MANUAL",
+          }
+        : { shoppingListId, ...rest, quantity, unit, source: "MANUAL" },
   });
 
   revalidatePath(`/shopping-lists/${shoppingListId}`);

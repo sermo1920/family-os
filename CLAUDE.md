@@ -48,6 +48,12 @@ Vercel + Supabase (Postgres + Auth), Prisma, Tailwind + shadcn/ui.
     suppression des anciennes valeurs via `prisma migrate diff --from-config-datasource --to-schema
 prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migration, puis
     l'appliquer avec `prisma migrate deploy` (qui n'a pas ce prompt interactif).
+- Planning (`PlannedMeal`) : `status` `PROPOSED` (posé par l'agent cuisine) / `VALIDATED`
+  (défaut ; un repas choisi à la main dans le planning est validé directement). `leftoverOfId`
+  relie un repas de restes au repas cuisiné en plus grande quantité. `preparedAt` est posé par
+  l'action explicite « Préparé », seule à décrémenter le stock (`markMealPrepared`, une seule
+  fois) — jamais la planification. Portions affichées = `recipe.servings × portionMultiplier`
+  (`features/recipes/scaling.ts`).
 - Planning (`PlannedMeal`) : dates stockées en minuit UTC (jour seul, l'heure n'est pas utilisée) —
   voir `features/meal-plan/dates.ts` (testé) pour tout calcul de semaine/jour, ne pas manipuler les
   dates à la main ailleurs. `useOptimistic` n'est utilisé que pour le retrait d'un repas (clic
@@ -65,15 +71,28 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
   si l'ingrédient source est renommé/supprimé ensuite (`onDelete: SetNull` sur la relation).
   L'agrégation (`features/shopping-list/aggregate.ts`) est une fonction pure testée : deux recettes
   partageant un ingrédient doivent donner une seule ligne sommée.
-  - `ShoppingList.startDate`/`endDate` sont **optionnels** : une liste n'est plus générée
-    uniquement à partir d'une plage du planning (ancien flux `generateShoppingList`, retiré).
-    `createShoppingList` crée maintenant une liste vide (juste un nom) ; `importPlannedMeals`
-    ajoute à une liste déjà existante les ingrédients des repas planifiés sur une plage de dates
-    choisie à ce moment-là — utilisable plusieurs fois sur la même liste, en plus des articles
-    ajoutés à la main. Un ingrédient déjà présent (même `ingredientId`) voit sa quantité
-    augmentée plutôt que dupliqué en une seconde ligne. Les deux champs restent non-null sur les
-    listes créées par l'ancien flux (affichage de la plage conservé pour l'historique), mais ne
-    sont plus jamais écrits par le nouveau code.
+- Valeurs nutritionnelles d'`Ingredient` **optionnelles** (`null` = inconnu, jamais 0) : un
+  ingrédient créé par l'agent cuisine ou pour le stock n'en a pas, et on ne les invente pas.
+  `computeRecipeNutritionTotal` ignore les valeurs inconnues, `hasUnknownNutrition` permet
+  d'afficher « incomplet ».
+- Unités : toute quantité stockée est dans l'unité de base de l'ingrédient. Les unités libres
+  (« kg », « dl », « c. à soupe »...) sont converties par `normalizeQuantity`
+  (`features/ingredients/units.ts`, testé) ; aucune conversion poids ↔ volume ↔ pièces (ce
+  serait une hypothèse de densité) : une unité incompatible avec le catalogue est refusée.
+  - `ShoppingList.startDate`/`endDate` sont **optionnels** : une liste peut être un simple
+    panier créé à la main (`createShoppingList`, juste un nom). Ils mémorisent la **période du
+    menu synchronisée** avec la liste (écrits par `syncShoppingList`,
+    `features/shopping-list/service.ts`) pour qu'une re-synchronisation après un changement
+    de menu reprenne la même période.
+  - Synchronisation liste ↔ menu (`planShoppingListSync`, `features/shopping-list/sync.ts`,
+    fonction pure testée) — remplace l'ancien import additif `importPlannedMeals`, qui doublait
+    les quantités à chaque relance. `ShoppingListItem.source` distingue `MANUAL` (jamais touché
+    par la synchro) de `MEAL_PLAN` (recalculé). Règles : seuls les repas `VALIDATED` comptent
+    (sauf option explicite), jamais les repas de restes ; les articles cochés (achetés) ne sont
+    jamais modifiés et couvrent une partie du besoin ; le stock connu est déduit, le stock de
+    quantité inconnue ne l'est jamais ; une ligne `MEAL_PLAN` non cochée est mise exactement à
+    la quantité encore nécessaire → relancer donne un plan vide (pas de doublon). Calcul et
+    écriture dans une même transaction. Pièces/paquets arrondis au supérieur à l'achat.
   - "Mémoire" des articles ajoutés à la main (`listKnownShoppingItems`,
     `features/shopping-list/queries.ts`) : quand on retape un nom déjà utilisé dans
     `AddManualItemForm`, catégorie/quantité/unité se pré-remplissent avec les dernières valeurs
@@ -83,6 +102,16 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
     d'ingrédients, ce n'est pas la même mémoire. Implémenté avec un simple `<input list=...>` /
     `<datalist>` HTML natif (autocomplete du navigateur) plutôt qu'un composant de recherche
     dédié : le nombre d'articles connus par foyer reste petit, pas besoin de plus.
+  - Design de la liste (`/shopping-lists/[id]`) volontairement calqué sur FamilyWall, l'app
+    utilisée auparavant par le foyer : en-tête couleur corail (`--coral` dans `globals.css`),
+    barre d'ajout rapide en haut (le nom seul suffit, catégorie/quantité/unité derrière un
+    bouton "détails"), catégories repliables avec un emoji (`categoryEmojis`,
+    `features/ingredients/schema.ts`) et leur nombre d'articles, une carte par article avec un
+    rond à cocher. Un article ajouté sans quantité est stocké en "1 pce" (pas de migration pour
+    rendre `quantity` nullable) et `formatItemQuantity` (`format.ts`, testé) affiche alors le nom
+    seul. La quantité reste modifiable en place (`QuantityEditor`, "+ qté" discret
+    quand il n'y en a pas) et le bouton "Synchroniser" (`SyncWithMenuDialog`) vit dans l'en-tête
+    corail.
 - Agenda externe (`features/household/calendar.ts`, dépendance `node-ical`) : chaque `Member`
   peut avoir un `icsCalendarUrl` (configuré dans son profil, `/household`) pointant vers un lien
   iCal en lecture seule (adresse secrète Google Calendar, lien ICS publié Outlook/Apple...).
@@ -111,6 +140,52 @@ prisma/schema.prisma --script`, l'écrire à la main dans un dossier de migratio
     ligne (pas de `<div grid>` ni d'en-têtes à elle) et s'insère via la prop `agendaRow` de
     `WeekGrid`, à l'intérieur de la même grille que les lignes de repas — seule façon de garantir
     un alignement pixel des jours plutôt qu'une simple coïncidence visuelle.
+
+## Assistant IA (coordinateur + agents spécialisés)
+
+- SDK `@anthropic-ai/sdk` appelé uniquement côté serveur (`features/assistant/llm.ts`,
+  `ANTHROPIC_API_KEY`, modèle `AI_MODEL` défaut `claude-opus-5-5`). Interface `LlmClient`
+  pour pouvoir substituer un client scripté dans les tests (`tests/helpers/fake-llm.ts`).
+  Sans clé : `/assistant` explique la configuration, pas de mode démo (rien n'est simulé).
+- Chemin d'une demande : `POST /api/assistant` (flux NDJSON de statuts pour l'UI) →
+  `runConversationTurn` (`features/assistant/conversation.ts`, persiste messages + journal) →
+  `runCoordinator` → outil `deleguer_cuisine` → `runCookingAgent` → outils métier
+  (`features/cooking-agent/tools.ts`) → services (`features/*/service.ts`) → Prisma.
+- Le coordinateur n'a **que** des outils de délégation (générés depuis
+  `features/assistant/specialists.ts`), plafonnés à 2 par message ; les spécialistes ne
+  peuvent pas re-déléguer → pas de boucle. Boucle d'outils manuelle (`agent-loop.ts`) avec
+  nombre d'itérations plafonné, dernier appel forcé sans outil, outils exécutés en séquence
+  (ils écrivent en base).
+- Ajouter un agent (Garmin, finances, garde-robe) : son dossier `features/<agent>/` avec un
+  `run(input)` + ses outils, puis renseigner `run` dans `specialists.ts`. Rien d'autre à
+  brancher côté coordinateur.
+- Honnêteté : chaque écriture faite par un outil est consignée dans un `ActionLog`
+  (`features/assistant/actions-log.ts`), stocké sur le message (`ConversationMessage.actions`)
+  et affiché sous la réponse — indépendamment du texte du modèle. Une erreur de l'API IA
+  interrompt le tour (elle n'est pas renvoyée au coordinateur comme simple erreur d'outil) et
+  le message d'erreur précise si des modifications avaient déjà été enregistrées.
+- Données transmises : le coordinateur reçoit l'historique texte (16 derniers messages + leurs
+  journaux d'actions) ; l'agent cuisine ne reçoit que la demande reformulée + le calendrier, et
+  lit le reste via ses outils (composition du foyer = prénoms + enfant/adulte, jamais e-mails,
+  mensurations ni agendas). La base reste la source de vérité, pas l'historique.
+- Dates : le calendrier (« Aujourd'hui », semaine en cours et suivante) est calculé par code
+  (`features/assistant/date-context.ts`, `Europe/Zurich`) et injecté dans chaque requête — le
+  modèle n'a pas à deviner quel jour tombe « jeudi ». Prompts système statiques (cachables).
+- Les recettes créées par l'agent sont `AI_PROPOSED` (validées par l'utilisateur dans la fiche
+  recette), les repas posés sont `PROPOSED` ; un repas `VALIDATED` n'est remplacé que sur
+  demande explicite (`remplacerRepasValide`). Relancer une même demande ne duplique ni recette
+  (refus si même nom), ni repas (un par créneau), ni article (synchro idempotente), ni
+  préférence.
+- Intégrations externes de liste de courses (FamilyWall...) : uniquement l'interface
+  `ShoppingListExporter` (`features/shopping-list/integrations/types.ts`), aucune implémentation
+  ni affichage de synchronisation tant qu'une vraie API n'est pas branchée.
+
+## Tests d'intégration
+
+- `npm run test:integration` (`vitest.integration.config.mts`, `tests/integration/`) : parcours
+  complets assistant → agent cuisine → base contre un Postgres **jetable** (`TEST_DATABASE_URL`,
+  migré avec `prisma migrate deploy`), modèle IA remplacé par un client scripté. Exclus de
+  `npm test` ; tournent en CI dans un job séparé avec un service `postgres:16`.
 
 ## Playwright (e2e)
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogClose,
@@ -18,6 +19,7 @@ export function ConfirmDeleteButton({
   itemLabel,
   description,
   ariaLabel,
+  triggerClassName,
   onConfirm,
   onSuccess,
 }: {
@@ -25,6 +27,8 @@ export function ConfirmDeleteButton({
   itemLabel: string;
   description?: string;
   ariaLabel?: string;
+  /** Extra classes for the round trigger button (e.g. on a colored header). */
+  triggerClassName?: string;
   onConfirm: () => Promise<{ error: string | null } | void>;
   onSuccess?: () => void;
 }) {
@@ -58,7 +62,10 @@ export function ConfirmDeleteButton({
           <button
             type="button"
             aria-label={ariaLabel ?? `Supprimer ${itemLabel}`}
-            className="text-muted-foreground hover:border-destructive hover:text-destructive flex size-6 shrink-0 items-center justify-center rounded-full border"
+            className={cn(
+              "text-muted-foreground hover:border-destructive hover:text-destructive flex size-6 shrink-0 items-center justify-center rounded-full border",
+              triggerClassName,
+            )}
           />
         }
       >

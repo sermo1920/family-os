@@ -1,10 +1,23 @@
 export interface IngredientNutrition {
   /** Quantité dans l'unité de base de l'ingrédient (grammes ou millilitres). */
   quantity: number;
-  caloriesPer100: number;
-  proteinPer100: number;
-  carbsPer100: number;
-  fatPer100: number;
+  // null = valeur inconnue (ingrédient créé par l'agent cuisine ou pour le
+  // stock) : ignorée dans la somme, jamais remplacée par une estimation.
+  caloriesPer100: number | null;
+  proteinPer100: number | null;
+  carbsPer100: number | null;
+  fatPer100: number | null;
+}
+
+/** Vrai si au moins un ingrédient n'a pas de valeurs nutritionnelles connues. */
+export function hasUnknownNutrition(ingredients: IngredientNutrition[]) {
+  return ingredients.some(
+    (i) =>
+      i.caloriesPer100 === null ||
+      i.proteinPer100 === null ||
+      i.carbsPer100 === null ||
+      i.fatPer100 === null,
+  );
 }
 
 export interface RecipeNutrition {
@@ -28,10 +41,10 @@ export function computeRecipeNutritionTotal(
   return ingredients.reduce((total, ingredient) => {
     const factor = ingredient.quantity / 100;
     return {
-      calories: total.calories + ingredient.caloriesPer100 * factor,
-      proteinG: total.proteinG + ingredient.proteinPer100 * factor,
-      carbsG: total.carbsG + ingredient.carbsPer100 * factor,
-      fatG: total.fatG + ingredient.fatPer100 * factor,
+      calories: total.calories + (ingredient.caloriesPer100 ?? 0) * factor,
+      proteinG: total.proteinG + (ingredient.proteinPer100 ?? 0) * factor,
+      carbsG: total.carbsG + (ingredient.carbsPer100 ?? 0) * factor,
+      fatG: total.fatG + (ingredient.fatPer100 ?? 0) * factor,
     };
   }, EMPTY_TOTAL);
 }

@@ -22,6 +22,9 @@ model Household {
   plannedMeals  PlannedMeal[]
   shoppingLists ShoppingList[]
   invitations   HouseholdInvitation[]
+  preferences   HouseholdPreference[]
+  pantryItems   PantryItem[]
+  conversations Conversation[]
 }
 
 // Une personne du foyer. Pas tous les membres ne peuvent se connecter
@@ -32,7 +35,7 @@ model Member {
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
 
-  linkedUserId String? @unique
+  linkedUserId String?    @unique
   // Copié depuis Supabase Auth à la création (jamais modifiable dans l'app :
   // le vrai compte reste géré par Supabase). Distinct de displayName, qui est
   // le nom affiché et librement modifiable.
@@ -60,6 +63,7 @@ model Member {
   nutritionGoals  NutritionGoal[]
   mealAttendances MealAttendance[]
   invitation      HouseholdInvitation?
+  conversations   Conversation[]
 }
 
 // Invitation à rejoindre le foyer en tant que `member` (déjà créé sans
@@ -117,15 +121,19 @@ model Ingredient {
   baseUnit Unit
 
   // Valeurs nutritionnelles pour 100 g ou 100 ml (selon baseUnit).
-  caloriesPer100 Float
-  proteinPer100  Float
-  carbsPer100    Float
-  fatPer100      Float
+  // Optionnelles : un ingrédient créé par l'agent cuisine (ou pour le stock)
+  // n'a pas de valeurs connues — on ne les invente jamais (null = inconnu,
+  // jamais 0).
+  caloriesPer100 Float?
+  proteinPer100  Float?
+  carbsPer100    Float?
+  fatPer100      Float?
 
   createdAt DateTime @default(now())
 
   recipeIngredients RecipeIngredient[]
   shoppingListItems ShoppingListItem[]
+  pantryItem        PantryItem?
 }
 
 model Recipe {
@@ -134,10 +142,21 @@ model Recipe {
   household   Household @relation(fields: [householdId], references: [id])
 
   name         String
+  // Étapes, une par ligne (affichées numérotées).
   instructions String?
-  servings     Int      @default(1)
+  servings     Int     @default(1)
+
+  // AI_PROPOSED : créée par l'agent cuisine, pas encore validée par le foyer.
+  status          RecipeStatus @default(VALIDATED)
+  prepTimeMinutes Int?
+  cookTimeMinutes Int?
+  tags            RecipeTag[]  @default([])
+  // Appréciation du foyer (1 à 5) et remarques/modifications libres.
+  rating          Int?
+  notes           String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   ingredients  RecipeIngredient[]
   plannedMeals PlannedMeal[]
@@ -170,6 +189,21 @@ model PlannedMeal {
   recipe            Recipe @relation(fields: [recipeId], references: [id])
   portionMultiplier Float  @default(1)
 
+  // PROPOSED : posé par l'agent cuisine, pas encore validé. Seuls les repas
+  // VALIDATED alimentent la liste de courses (voir features/shopping-list/sync.ts).
+  status MealStatus @default(VALIDATED)
+  notes  String?
+
+  // Repas de restes : pointe vers le repas cuisiné en plus grande quantité.
+  // Ses ingrédients ne sont ni achetés ni décomptés du stock une seconde fois.
+  leftoverOfId String?
+  leftoverOf   PlannedMeal?  @relation("Leftovers", fields: [leftoverOfId], references: [id], onDelete: SetNull)
+  leftovers    PlannedMeal[] @relation("Leftovers")
+
+  // Renseigné par l'action explicite "Marquer comme préparé", qui décrémente
+  // le stock une seule fois (jamais au moment de la planification).
+  preparedAt DateTime?
+
   createdAt DateTime @default(now())
 
   attendances MealAttendance[]
@@ -195,7 +229,7 @@ model ShoppingList {
   householdId String
   household   Household @relation(fields: [householdId], references: [id])
 
-  name String
+  name      String
   // Optionnelles : une liste n'est plus forcément générée à partir d'une
   // plage de dates du planning (voir importPlannedMeals) — elle peut être
   // un simple panier créé à la main. Gardées pour l'affichage des listes
@@ -225,8 +259,123 @@ model ShoppingListItem {
   quantity Float
   unit     Unit
 
+  // MEAL_PLAN : calculé depuis le menu validé, recalculé à chaque
+  // synchronisation. MANUAL : ajouté à la main, jamais touché par la synchro.
+  source ShoppingItemSource @default(MANUAL)
+
   isChecked Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// Préférences confirmées du foyer (goûts, exclusions, contraintes, budget).
+// Source de vérité pour l'agent cuisine, consultable/modifiable dans /preferences.
+model HouseholdPreference {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  kind PreferenceKind
+  text String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([householdId])
+}
+
+// Stock simple : un ingrédient du catalogue et sa quantité si connue (dans
+// l'unité de base de l'ingrédient). quantity null = présent, quantité
+// inconnue — jamais déduit des besoins dans ce cas.
+model PantryItem {
+  id           String     @id @default(cuid())
+  householdId  String
+  household    Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  ingredientId String     @unique
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  quantity Float?
+
+  updatedAt DateTime @updatedAt
+
+  @@index([householdId])
+}
+
+// Conversation avec le coordinateur. Le contenu utile (recettes, menus,
+// listes) vit dans les tables métier : l'historique ne sert qu'à comprendre
+// les références ("remplace celui de jeudi").
+model Conversation {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  memberId    String
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  title String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ConversationMessage[]
+
+  @@index([memberId, updatedAt])
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    ConversationRole
+  content String
+  // Journal déterministe des écritures réellement effectuées pendant ce tour
+  // (voir features/assistant/actions-log.ts), affiché sous la réponse.
+  actions Json?
+  isError Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+enum RecipeStatus {
+  AI_PROPOSED
+  VALIDATED
+}
+
+enum RecipeTag {
+  QUICK
+  VEGETARIAN
+  VEGAN
+  MAKE_AHEAD
+  FREEZABLE
+  KID_FRIENDLY
+  LIGHT
+  BUDGET
+  ONE_POT
+}
+
+enum MealStatus {
+  PROPOSED
+  VALIDATED
+}
+
+enum ShoppingItemSource {
+  MANUAL
+  MEAL_PLAN
+}
+
+enum PreferenceKind {
+  LIKE
+  DISLIKE
+  EXCLUSION
+  CONSTRAINT
+  BUDGET
+  OTHER
+}
+
+enum ConversationRole {
+  USER
+  ASSISTANT
 }
 
 enum MealSlot {

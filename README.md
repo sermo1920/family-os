@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Family OS
 
-## Getting Started
+Application familiale (Next.js + Supabase + Prisma) : recettes, planning des repas, listes
+de courses, préférences, stock — et un **assistant IA** (coordinateur + agent cuisine) qui
+pilote ces fonctions en langage naturel.
 
-First, run the development server:
+## Démarrer
 
 ```bash
+npm install
+cp .env.example .env.local   # puis remplir les valeurs
+npx prisma migrate deploy    # applique les migrations sur la base DIRECT_URL
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir http://localhost:3000, créer un compte (confirmation par e-mail Supabase), puis aller
+sur **Assistant**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variables d'environnement (`.env.local`, et Vercel → Project Settings → Environment Variables)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable                                                           | Rôle                                                            |
+| ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Auth Supabase                                                   |
+| `DATABASE_URL`                                                     | Postgres (pooler transaction, port 6543) utilisé par l'app      |
+| `DIRECT_URL`                                                       | Postgres (pooler session, port 5432) utilisé par les migrations |
+| `ANTHROPIC_API_KEY`                                                | Clé API Anthropic pour l'assistant (serveur uniquement)         |
+| `AI_MODEL`                                                         | Optionnel, défaut `claude-opus-5-5`                             |
 
-## Learn More
+Sans `ANTHROPIC_API_KEY`, l'assistant affiche comment la configurer ; tout le reste fonctionne.
+Il n'y a pas de mode démonstration : aucune réponse n'est simulée.
 
-To learn more about Next.js, take a look at the following resources:
+## Assistant IA
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Coordinateur** (`features/assistant/`) : interlocuteur unique. Il comprend la demande,
+  résout les références (« celui de jeudi » → date et créneau), délègue au spécialiste et
+  rédige la réponse. Ses seuls outils sont « déléguer à X » (2 délégations max par message).
+- **Agent cuisine** (`features/cooking-agent/`) : 19 outils métier (recettes, menu, courses,
+  préférences, stock). Les calculs (portions, unités, agrégation, stock) et les écritures en
+  base sont du code déterministe (`features/*/service.ts`, fonctions pures testées).
+- Chaque écriture est consignée dans un **journal d'actions** affiché sous la réponse :
+  ce qui est « proposé (à valider) », « enregistré » ou non fait ne dépend pas du texte du modèle.
+- Ajouter un agent (Garmin, finances, garde-robe) : l'implémenter dans son dossier et
+  le brancher dans `features/assistant/specialists.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tests
 
-## Deploy on Vercel
+```bash
+npm test                 # Vitest : fonctions pures + composants
+npm run test:integration # parcours complets contre un Postgres jetable (voir ci-dessous)
+npm run test:e2e         # Playwright (auth)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`test:integration` exige `TEST_DATABASE_URL` pointant vers une base **jetable** (jamais
+Supabase), migrée au préalable :
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+DIRECT_URL=postgresql://postgres@localhost:5432/familyos_test npx prisma migrate deploy
+TEST_DATABASE_URL=postgresql://postgres@localhost:5432/familyos_test npm run test:integration
+```
+
+Le modèle IA y est remplacé par un client scripté (`tests/helpers/fake-llm.ts`) : aucune clé
+n'est nécessaire et ces tests tournent en CI.

@@ -105,8 +105,8 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
-          defaultValue={ingredient?.caloriesPer100}
-          required
+          defaultValue={ingredient?.caloriesPer100 ?? undefined}
+          placeholder="Inconnu"
         />
       </div>
 
@@ -118,8 +118,8 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
-          defaultValue={ingredient?.proteinPer100}
-          required
+          defaultValue={ingredient?.proteinPer100 ?? undefined}
+          placeholder="Inconnu"
         />
       </div>
 
@@ -131,8 +131,8 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
-          defaultValue={ingredient?.carbsPer100}
-          required
+          defaultValue={ingredient?.carbsPer100 ?? undefined}
+          placeholder="Inconnu"
         />
       </div>
 
@@ -144,10 +144,15 @@ export function IngredientForm({
           type="number"
           min={0}
           step="0.1"
-          defaultValue={ingredient?.fatPer100}
-          required
+          defaultValue={ingredient?.fatPer100 ?? undefined}
+          placeholder="Inconnu"
         />
       </div>
+
+      <p className="text-muted-foreground text-xs sm:col-span-2">
+        Valeurs nutritionnelles optionnelles : laisse vide si tu ne les connais
+        pas (elles ne sont jamais estimées).
+      </p>
 
       {state.error && (
         <p className="text-destructive text-sm sm:col-span-2">{state.error}</p>

@@ -4,6 +4,7 @@ import { listRecipesWithIngredients } from "@/features/recipes/queries";
 import {
   computeNutritionPerPortion,
   computeRecipeNutritionTotal,
+  hasUnknownNutrition,
 } from "@/features/recipes/calculations";
 import { categoryLabels, unitLabels } from "@/features/ingredients/schema";
 import { AddIngredientDialog } from "@/features/ingredients/components/add-ingredient-dialog";
@@ -62,8 +63,9 @@ export default async function IngredientsPage() {
                       <div>
                         <p className="font-medium">{ingredient.name}</p>
                         <p className="text-muted-foreground text-sm">
-                          {ingredient.caloriesPer100} kcal pour 100 (
-                          {unitLabels[ingredient.baseUnit]})
+                          {ingredient.caloriesPer100 === null
+                            ? `Nutrition inconnue (${unitLabels[ingredient.baseUnit]})`
+                            : `${ingredient.caloriesPer100} kcal pour 100 (${unitLabels[ingredient.baseUnit]})`}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -100,15 +102,14 @@ export default async function IngredientsPage() {
 
           <ul className="flex flex-col gap-2">
             {recipes.map((recipe) => {
-              const total = computeRecipeNutritionTotal(
-                recipe.ingredients.map((ri) => ({
-                  quantity: ri.quantity,
-                  caloriesPer100: ri.ingredient.caloriesPer100,
-                  proteinPer100: ri.ingredient.proteinPer100,
-                  carbsPer100: ri.ingredient.carbsPer100,
-                  fatPer100: ri.ingredient.fatPer100,
-                })),
-              );
+              const nutritionInputs = recipe.ingredients.map((ri) => ({
+                quantity: ri.quantity,
+                caloriesPer100: ri.ingredient.caloriesPer100,
+                proteinPer100: ri.ingredient.proteinPer100,
+                carbsPer100: ri.ingredient.carbsPer100,
+                fatPer100: ri.ingredient.fatPer100,
+              }));
+              const total = computeRecipeNutritionTotal(nutritionInputs);
               const perPortion = computeNutritionPerPortion(
                 total,
                 recipe.servings,
@@ -121,10 +122,18 @@ export default async function IngredientsPage() {
                 >
                   <RecipeViewDialog
                     recipe={{
+                      id: recipe.id,
                       name: recipe.name,
                       servings: recipe.servings,
                       instructions: recipe.instructions,
+                      status: recipe.status,
+                      prepTimeMinutes: recipe.prepTimeMinutes,
+                      cookTimeMinutes: recipe.cookTimeMinutes,
+                      tags: recipe.tags,
+                      rating: recipe.rating,
+                      notes: recipe.notes,
                       perPortion,
+                      nutritionIncomplete: hasUnknownNutrition(nutritionInputs),
                       ingredients: recipe.ingredients.map((ri) => ({
                         id: ri.id,
                         name: ri.ingredient.name,
@@ -142,6 +151,9 @@ export default async function IngredientsPage() {
                         name: recipe.name,
                         servings: recipe.servings,
                         instructions: recipe.instructions,
+                        prepTimeMinutes: recipe.prepTimeMinutes,
+                        cookTimeMinutes: recipe.cookTimeMinutes,
+                        tags: recipe.tags,
                         ingredients: recipe.ingredients.map((ri) => ({
                           ingredientId: ri.ingredientId,
                           quantity: ri.quantity,

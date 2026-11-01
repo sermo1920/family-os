@@ -9,6 +9,7 @@ export async function getWeekPlan(householdId: string, weekStart: Date) {
     where: { householdId, date: { gte: weekStart, lt: weekEnd } },
     include: {
       recipe: true,
+      leftoverOf: { select: { date: true, mealSlot: true } },
       attendances: { include: { member: true } },
     },
   });

@@ -4,10 +4,12 @@ import { signOut } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { href: "/household", label: "Foyer" },
-  { href: "/ingredients", label: "Ingrédients & Recettes" },
+  { href: "/assistant", label: "Assistant" },
   { href: "/planner", label: "Planning" },
+  { href: "/ingredients", label: "Ingrédients & Recettes" },
   { href: "/shopping-lists", label: "Courses" },
+  { href: "/preferences", label: "Préférences & stock" },
+  { href: "/household", label: "Foyer" },
 ];
 
 export default async function AppLayout({
@@ -19,10 +21,10 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b px-6 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex flex-wrap items-center gap-6">
           <span className="font-semibold">Family OS</span>
-          <nav className="flex flex-wrap items-center gap-4">
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -45,7 +47,7 @@ export default async function AppLayout({
           </form>
         </div>
       </header>
-      <main className="flex flex-1 flex-col p-6">{children}</main>
+      <main className="flex flex-1 flex-col p-4 sm:p-6">{children}</main>
     </div>
   );
 }
